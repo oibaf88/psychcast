@@ -37,13 +37,13 @@ import {
  * rather than chosen by eye.
  *
  * The previous steps were validated against a WHITE card. The surface is
- * now #1a2332, so they were re-stepped and re-run — a dark palette is
+ * now #24161d, with the established categorical hues retained — a dark palette is
  * selected for its surface, never an automatic flip of the light one.
  *
  * The four categorical slots below are assigned in fixed order and shared
  * by both groups that ever appear together in one chart (the four check-in
  * variables, and the four Agent 2 signals); the groups never co-occur, so
- * one theme serves both. Against #1a2332, on the adjacent pairlist that
+ * one theme serves both. Against #24161d, on the adjacent pairlist that
  * line charts are read on:
  *
  *   #3987e5 #d95926 #199e70 #c98500
@@ -200,7 +200,7 @@ export function structuralVersionSegments(points: StructuralPoint[]): VersionSeg
 
 const VERSION_DOT: Record<string, string> = {
   "structural-v3": COLORS.score,
-  "structural-v2": "#7aa7d9",
+  "structural-v2": "#d28ba0",
   "structural-v1": "#e5b75f",
   [UNLABELED_VERSION]: COLORS.neutral,
 };
@@ -330,7 +330,7 @@ export function ZScoreChart({ points }: { points: StructuralPoint[] }) {
       <ResponsiveContainer width="100%" height={240}>
         <LineChart data={sorted} margin={{ top: 16, right: 16, bottom: 4, left: -18 }}>
           <CartesianGrid strokeDasharray="3 3" />
-          <ReferenceLine y={0} stroke="#3a4a63" />
+          <ReferenceLine y={0} stroke="#624551" />
           {versionMarkers(segments)}
           <XAxis dataKey="date" tick={{ fontSize: 11 }} tickFormatter={formatDay} minTickGap={24} />
           <YAxis tick={{ fontSize: 11 }} />
@@ -575,9 +575,9 @@ type TrajectoryPoint = {
 };
 
 const PATIENT_SERIES = [
-  { key: "mood", name: "Ánimo", stroke: "#7ea8f7", width: 2.5, axis: "left" },
-  { key: "craving", name: "Craving", stroke: "#df9a73", width: 2.5, axis: "left" },
-  { key: "self_efficacy", name: "Autoeficacia", stroke: "#76cdbd", width: 2.5, axis: "left" },
+  { key: "mood", name: "Ánimo", stroke: "#cc8298", width: 2.5, axis: "left" },
+  { key: "craving", name: "Craving", stroke: "#a85d76", width: 2.5, axis: "left" },
+  { key: "self_efficacy", name: "Autoeficacia", stroke: "#f0b7c5", width: 2.5, axis: "left" },
   { key: "sleep_hours", name: "Sueño (h)", stroke: "#e9c982", width: 2, axis: "sleep", dash: "5 3" },
 ] as const;
 

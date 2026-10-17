@@ -345,7 +345,7 @@ export default function AdminUsersPage() {
                 {selected.can_restore && <button type="button" disabled={busy !== null} onClick={() => void changeAccess("restore")}>Restaurar acceso</button>}
               </div>
               {selectedIsSelf && <p className="meta no-print">Tu propio acceso y rol están protegidos para evitar un bloqueo administrativo accidental.</p>}
-              <p className="print-only meta">Documento generado desde PsychDeep. No contiene expediente, alertas, señales ni contraseñas.</p>
+              <p className="print-only meta">Documento generado desde Psychcast. No contiene expediente, alertas, señales ni contraseñas.</p>
             </>
           )}
         </section>

@@ -32,7 +32,7 @@ import PatientProfilePanel from "../components/PatientProfilePanel";
 import { partitionAssignments } from "./assignmentGroups";
 import PsychosocialPanel from "../components/PsychosocialPanel";
 import DailyStatisticsPanel from "../components/DailyStatisticsPanel";
-import PsychDeepLoader from "../components/PsychDeepLoader";
+import PsychcastLoader from "../components/PsychcastLoader";
 import LongitudinalChangePanel from "../components/LongitudinalChangePanel";
 import ClinicalMemoryPanel from "../components/ClinicalMemoryPanel";
 
@@ -191,7 +191,7 @@ export default function PatientDetailPage() {
     );
   }
 
-  if (!dossier) return <div className="loading"><PsychDeepLoader size="md" label="Cargando historial clínico…" /></div>;
+  if (!dossier) return <div className="loading"><PsychcastLoader size="md" label="Cargando historial clínico…" /></div>;
 
   const p = dossier.patient;
   const assignmentGroups = partitionAssignments(p.assignments ?? []);

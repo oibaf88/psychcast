@@ -1,7 +1,7 @@
 """Claude (Anthropic API) implementation of LLMProvider.
 
 Every agent runs on the Anthropic API when that provider is active.  Prompt
-caching is enabled at the request level because PsychDeep has unusually large,
+caching is enabled at the request level because Psychcast has unusually large,
 stable prefixes (clinical system prompts, schemas, dossier/history).  Caching
 changes neither the prompt nor the model response contract; it only avoids
 billing the same prefix as fresh input on each nearby turn.

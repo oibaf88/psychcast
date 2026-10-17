@@ -1,4 +1,4 @@
-"""Whole-person longitudinal memory and analysis for PsychDeep.
+"""Whole-person longitudinal memory and analysis for Psychcast.
 
 This is a background-only workflow. It never runs a deep synthesis on every
 chat turn. It preserves source records, analyses history in bounded temporal
@@ -271,7 +271,7 @@ EPISODE_DIGEST_TOOL_SCHEMA = {
 }
 
 
-EPISODE_DIGEST_SYSTEM_PROMPT = """Eres el consolidator jerárquico de memoria longitudinal de PsychDeep.
+EPISODE_DIGEST_SYSTEM_PROMPT = """Eres el consolidator jerárquico de memoria longitudinal de Psychcast.
 Recibes entre 1 y 12 episodios/resúmenes fechados, cada uno con referencias de origen.
 Tu objetivo es conservar los cambios y matices importantes en una síntesis de nivel superior
 para que historiales extensos puedan analizarse sin introducir todos los textos originales en un prompt.
@@ -290,7 +290,7 @@ Reglas:
 Responde solo con el esquema estructurado solicitado."""
 
 
-EPISODE_SYSTEM_PROMPT = """Eres el consolidator episódico de memoria longitudinal de PsychDeep.
+EPISODE_SYSTEM_PROMPT = """Eres el consolidator episódico de memoria longitudinal de Psychcast.
 Recibes fuentes ya registradas sobre una sola persona. Agrupa material relacionado en episodios o
 tramos temporales únicamente cuando la relación esté apoyada por las fuentes.
 
@@ -309,7 +309,7 @@ Reglas obligatorias:
 Responde solo con el esquema estructurado solicitado."""
 
 
-WHOLE_PERSON_SYSTEM_PROMPT = """Eres el sintetizador de conocimiento longitudinal del paciente de PsychDeep.
+WHOLE_PERSON_SYSTEM_PROMPT = """Eres el sintetizador de conocimiento longitudinal del paciente de Psychcast.
 Tu función no es contestar la última frase, sino construir una representación prudente y profunda de
 la persona a lo largo del tiempo, con utilidad para una conversación terapéutica y para revisión profesional.
 

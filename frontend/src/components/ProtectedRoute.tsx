@@ -2,7 +2,7 @@ import { Navigate } from "react-router-dom";
 import { ReactNode } from "react";
 import { homePathForRole, UserRole } from "../api";
 import { useAuth } from "../auth/AuthContext";
-import PsychDeepLoader from "./PsychDeepLoader";
+import PsychcastLoader from "./PsychcastLoader";
 
 export default function ProtectedRoute({
   children,
@@ -17,7 +17,7 @@ export default function ProtectedRoute({
 }) {
   const { user, loading, sessionError, retrySession } = useAuth();
 
-  if (loading) return <div className="loading"><PsychDeepLoader size="md" label="Cargando PsychDeep…" /></div>;
+  if (loading) return <div className="loading"><PsychcastLoader size="md" label="Cargando Psychcast…" /></div>;
   if (sessionError) return (
     <div className="page">
       <h1>No se pudo comprobar tu sesión</h1>

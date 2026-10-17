@@ -1,4 +1,4 @@
-"""Gate local LM Studio use behind a PsychDeep session and manager approval.
+"""Gate local LM Studio use behind a Psychcast session and manager approval.
 
 The LM Studio API key still authenticates the origin. This module is the
 application authorization layer: an anonymous caller, a revoked account, or
@@ -44,7 +44,7 @@ def public_status(user: User) -> dict:
 def assert_can_use_local_llm(user: object | None) -> None:
     if user is None:
         raise LocalLlmAccessDenied(
-            "Se requiere una sesión activa en PsychDeep para usar el modelo local."
+            "Se requiere una sesión activa en Psychcast para usar el modelo local."
         )
     if not getattr(user, "is_active", False):
         raise LocalLlmAccessDenied("La cuenta no está activa.")

@@ -1,6 +1,6 @@
 """Resolve and audit the LLM deployment selected at runtime.
 
-PsychDeep vNext keeps clinical storage, consent, deterministic risk and audit
+Psychcast keeps clinical storage, consent, deterministic risk and audit
 independent from the generative model. The deployment supplies approved model
 endpoints and secrets, while an ``admin_clinical`` may switch between Anthropic
 and an OpenAI-compatible local/tunnel endpoint when

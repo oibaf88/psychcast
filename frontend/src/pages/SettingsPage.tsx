@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
-import PsychDeepLoader from "../components/PsychDeepLoader";
+import PsychcastLoader from "../components/PsychcastLoader";
 
 type Provider = "anthropic" | "openai" | "openai_compatible";
 
@@ -208,7 +208,7 @@ export default function SettingsPage() {
             </div>
           </>
         )}
-        {busy === "test" && <PsychDeepLoader size="sm" label="Probando la conexión…" />}
+        {busy === "test" && <PsychcastLoader size="sm" label="Probando la conexión…" />}
         {error && <p className="error" role="alert">{error}</p>}
         {message && <p className="info" role="status">{message}</p>}
         <p className="meta">Si el proveedor elegido no responde, no se envía información clínica a otro proveedor.</p>

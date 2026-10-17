@@ -1,10 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import PsychDeepLoader from "../PsychDeepLoader";
+import PsychcastLoader from "../PsychcastLoader";
 
-describe("PsychDeepLoader", () => {
+describe("PsychcastLoader", () => {
   it("uses the repository-owned animated logo asset", () => {
-    const { container } = render(<PsychDeepLoader label="Preparando respuesta…" />);
+    const { container } = render(<PsychcastLoader label="Preparando respuesta…" />);
     const video = container.querySelector("video");
     const source = container.querySelector("source");
 
@@ -13,8 +13,8 @@ describe("PsychDeepLoader", () => {
     expect(video).toHaveAttribute("loop");
     expect((video as HTMLVideoElement).muted).toBe(true);
     expect(video).toHaveAttribute("playsinline");
-    expect(source).toHaveAttribute("src", "/moving%20psychdeep%20logo.mp4");
-    expect(video).toHaveAttribute("poster", "/psychDeep%20logo.png");
+    expect(source).toHaveAttribute("src", "/psychcast-mark-animation.mp4");
+    expect(video).toHaveAttribute("poster", "/psychcast-icon.svg");
     expect(screen.getByRole("status")).toHaveTextContent("Preparando respuesta…");
   });
 });

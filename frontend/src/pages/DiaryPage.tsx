@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api, formatDateTime } from "../api";
-import PsychDeepLoader from "../components/PsychDeepLoader";
+import PsychcastLoader from "../components/PsychcastLoader";
 
 interface DiaryEntry {
   id: string;
@@ -96,7 +96,7 @@ export default function DiaryPage() {
         <button type="submit" disabled={busy || !content.trim()}>
           {busy ? (analysing ? "Esperando análisis…" : "Guardando…") : "Guardar entrada"}
         </button>
-        {busy && <PsychDeepLoader size="sm" label={analysing ? "Analizando tu entrada…" : "Guardando tu entrada…"} />}
+        {busy && <PsychcastLoader size="sm" label={analysing ? "Analizando tu entrada…" : "Guardando tu entrada…"} />}
       </form>
 
       {error && (
@@ -106,7 +106,7 @@ export default function DiaryPage() {
       )}
 
       <section className="entries" aria-label="Entradas anteriores">
-        {loading && <PsychDeepLoader size="sm" label="Cargando tus entradas…" />}
+        {loading && <PsychcastLoader size="sm" label="Cargando tus entradas…" />}
         {!loading && !error && entries.length === 0 && <p className="meta">Todavía no has escrito ninguna entrada.</p>}
         {entries.map((e) => (
           <article key={e.id} className="card">

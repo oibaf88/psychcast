@@ -1,6 +1,6 @@
 """Read the model ids LM Studio is actually serving through the tunnel.
 
-PsychDeep must not invent a model id. The identifier sent to chat
+Psychcast must not invent a model id. The identifier sent to chat
 completions is either one the account chose from this catalog or, when
 nothing was chosen, the single model LM Studio reports as loaded.
 """

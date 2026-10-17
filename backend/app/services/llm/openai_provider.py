@@ -1,4 +1,4 @@
-"""First-party OpenAI Responses API adapter for PsychDeep."""
+"""First-party OpenAI Responses API adapter for Psychcast."""
 
 from __future__ import annotations
 

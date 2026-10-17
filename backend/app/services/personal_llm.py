@@ -378,7 +378,7 @@ def resolve(db: Session, user_id: uuid.UUID) -> PersonalResolvedConfig:
     model = select_model("", _catalog_for(api_key))
     if not model:
         raise LocalModelUnavailable(
-            "No hay un modelo cargado en el ordenador. Carga uno en LM Studio; desde PsychDeep no se elige un modelo."
+            "No hay un modelo cargado en el ordenador. Carga uno en LM Studio; desde Psychcast no se elige un modelo."
         )
     return PersonalResolvedConfig(
         provider=selected, base_url=endpoint, chat_model=model,

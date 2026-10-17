@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import CrisisButton from "../components/CrisisButton";
-import PsychDeepLoader from "../components/PsychDeepLoader";
+import PsychcastLoader from "../components/PsychcastLoader";
 import { api, SafetyPlanOut } from "../api";
 
 interface Resource {
@@ -99,7 +99,7 @@ export default function SafetyPlanPage() {
       <h1>Mi plan de seguridad</h1>
       <CrisisButton />
 
-      {loading && <PsychDeepLoader size="sm" label="Cargando tu plan…" />}
+      {loading && <PsychcastLoader size="sm" label="Cargando tu plan…" />}
       {loadError && (
         <p className="error" role="alert">
           {loadError}

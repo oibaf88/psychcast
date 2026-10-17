@@ -423,9 +423,11 @@ This section is operating guidance for Cloud Agents. It does not change the prod
 - The migration apply/re-apply gate is `.github/workflows/tests.yml`. It needs the Supabase role model (`supabase_admin` as superuser and a non-superuser `postgres`). Do not point that job at the local `psychapp` database.
 
 
-## psychDeep-vOG identity and preservation contract (2026-10-15)
+## Psychcast identity and preservation contract (2026-10-17)
 
 This section supplements—not replaces—the historical vNext specification and progress ledger above. Existing clinical records and validation history are authoritative.
+
+- Product owner decision (2026-10-17): **Psychcast** is the product-facing name for this application and repository, superseding the prior product label. Use Psychcast in the app UI, public metadata and user-facing runtime prompts. Earlier references in the vNext history and clinical provenance remain historical records.
 
 ### Non-negotiable preservation rules
 - Never drop, truncate, overwrite, or bulk-normalise existing clinical/source tables or their rows as part of a feature migration.
@@ -449,4 +451,4 @@ This section supplements—not replaces—the historical vNext specification and
 4. Never claim production verification from unit tests or a successful build alone.
 5. Do not merge or deploy production changes until the product owner approves the exact PR and rollout.
 6. Daily agents may inspect source freshness, stuck/retried/dead-letter counts, failed analysis categories, model version freshness, API/UI contracts and test status. They must not automatically access patient text, change consent, replay dead-letter jobs, alter production schemas, or publish clinical interpretations without an authorised workflow.
-7. Use `psychDeep-vOG` for product-facing naming. Preserve historical technical identifiers (including `psychdeep_v12`, existing service URLs, migration IDs and old repository references) until a tested compatibility plan proves that changing each is safe.
+7. Use **Psychcast** for product-facing naming. Preserve historical technical identifiers (including `psychdeep_v12`, existing service URLs, migration IDs and old repository references) until a tested compatibility plan proves that changing each is safe.

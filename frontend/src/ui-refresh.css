@@ -1,18 +1,18 @@
 
-/* PsychDeep vNext patient UI refresh.
+/* Psychcast patient UI refresh.
  * Purpose: lower cognitive load, make state legible, and turn tools into a
  * predictable self-regulation flow without gamification, streaks or urgency
  * manipulation. This layer intentionally sits on top of the existing system.
  */
 
 :root {
-  --pd-calm-1: #121b27;
-  --pd-calm-2: #182536;
-  --pd-calm-3: #203348;
-  --pd-calm-accent: #7ea8f7;
-  --pd-calm-teal: #76cdbd;
+  --pd-calm-1: #1a1015;
+  --pd-calm-2: #25171d;
+  --pd-calm-3: #35212a;
+  --pd-calm-accent: #cc8298;
+  --pd-calm-teal: #ba748c;
   --pd-calm-warm: #e9c982;
-  --pd-focus-ring: #a9c7ff;
+  --pd-focus-ring: #f0b7c5;
   --pd-shadow-soft: 0 18px 50px rgba(0, 0, 0, 0.18);
 }
 
@@ -23,8 +23,8 @@ html {
 body {
   min-width: 320px;
   background:
-    radial-gradient(900px 540px at 50% -120px, rgba(108, 152, 244, 0.10), transparent 70%),
-    linear-gradient(180deg, #0d131b 0%, #0f1419 44%, #10161d 100%);
+    radial-gradient(900px 540px at 50% -120px, rgba(194, 118, 143, 0.10), transparent 70%),
+    linear-gradient(180deg, #10090d 0%, #120b0f 44%, #150d12 100%);
 }
 
 body::before {
@@ -33,8 +33,8 @@ body::before {
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(500px 300px at 80% 12%, rgba(118, 205, 189, 0.035), transparent 70%),
-    radial-gradient(420px 260px at 12% 52%, rgba(126, 168, 247, 0.028), transparent 72%);
+    radial-gradient(500px 300px at 80% 12%, rgba(182, 112, 136, 0.035), transparent 70%),
+    radial-gradient(420px 260px at 12% 52%, rgba(194, 118, 143, 0.028), transparent 72%);
   z-index: -1;
 }
 
@@ -70,8 +70,8 @@ main {
   min-height: 62px;
   padding: 10px max(18px, calc((100vw - 1180px) / 2));
   background:
-    linear-gradient(180deg, rgba(26, 35, 50, 0.96), rgba(15, 20, 25, 0.92));
-  border-bottom: 1px solid rgba(126, 168, 247, 0.14);
+    linear-gradient(180deg, rgba(36, 22, 29, 0.96), rgba(18, 11, 15, 0.92));
+  border-bottom: 1px solid rgba(194, 118, 143, 0.14);
   backdrop-filter: blur(16px) saturate(120%);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
 }
@@ -110,13 +110,13 @@ main {
 
 .navbar-links a:hover {
   color: var(--ink);
-  background: rgba(126, 168, 247, 0.08);
+  background: rgba(194, 118, 143, 0.08);
 }
 
 .navbar-links a.active {
   color: var(--ink);
-  background: rgba(126, 168, 247, 0.14);
-  box-shadow: inset 0 0 0 1px rgba(126, 168, 247, 0.18);
+  background: rgba(194, 118, 143, 0.14);
+  box-shadow: inset 0 0 0 1px rgba(194, 118, 143, 0.18);
 }
 
 .navbar-user {
@@ -126,9 +126,9 @@ main {
 
 .card,
 .chart-card {
-  border-color: rgba(126, 168, 247, 0.12);
+  border-color: rgba(194, 118, 143, 0.12);
   background:
-    linear-gradient(180deg, rgba(31, 44, 61, 0.92), rgba(26, 35, 50, 0.94));
+    linear-gradient(180deg, rgba(44, 28, 36, 0.92), rgba(36, 22, 29, 0.94));
   box-shadow: var(--pd-shadow-soft);
 }
 
@@ -155,11 +155,11 @@ main {
   align-items: center;
   margin-bottom: 18px;
   padding: clamp(22px, 3vw, 34px);
-  border: 1px solid rgba(118, 205, 189, 0.16);
+  border: 1px solid rgba(182, 112, 136, 0.16);
   border-radius: 22px;
   background:
-    radial-gradient(circle at 88% 25%, rgba(118, 205, 189, 0.12), transparent 36%),
-    linear-gradient(135deg, rgba(33, 55, 71, 0.96), rgba(24, 37, 54, 0.96));
+    radial-gradient(circle at 88% 25%, rgba(182, 112, 136, 0.12), transparent 36%),
+    linear-gradient(135deg, rgba(54, 32, 42, 0.96), rgba(38, 24, 30, 0.96));
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.2);
 }
 
@@ -179,7 +179,7 @@ main {
   max-width: 280px;
   padding: 16px;
   border-radius: 16px;
-  background: rgba(12, 19, 28, 0.28);
+  background: rgba(20, 12, 17, 0.28);
   border: 1px solid rgba(255, 255, 255, 0.08);
   text-align: center;
 }
@@ -275,8 +275,8 @@ main {
 .longitudinal-change__item {
   padding: 12px 14px;
   border-radius: 14px;
-  background: rgba(11, 18, 27, 0.25);
-  border: 1px solid rgba(118, 205, 189, 0.2);
+  background: rgba(19, 12, 16, 0.25);
+  border: 1px solid rgba(182, 112, 136, 0.2);
 }
 
 .longitudinal-change__item h3 {
@@ -307,7 +307,7 @@ main {
 
 .patient-action-card--quiet {
   background:
-    linear-gradient(180deg, rgba(36, 52, 66, 0.9), rgba(27, 39, 53, 0.95));
+    linear-gradient(180deg, rgba(52, 32, 41, 0.9), rgba(40, 25, 32, 0.95));
 }
 
 .patient-action-card__eyebrow {
@@ -356,13 +356,13 @@ main {
   margin-bottom: 0;
   padding: 14px 15px;
   border-radius: 14px;
-  background: rgba(10, 17, 25, 0.22);
+  background: rgba(18, 11, 15, 0.22);
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .checkin-form .range-container:focus-within {
-  border-color: rgba(169, 199, 255, 0.30);
-  background: rgba(10, 17, 25, 0.30);
+  border-color: rgba(236, 173, 190, 0.30);
+  background: rgba(18, 11, 15, 0.30);
 }
 
 .checkin-form .range-container--full {
@@ -395,7 +395,7 @@ a:focus-visible,
 textarea:focus-visible,
 input:focus-visible,
 select:focus-visible {
-  outline: 3px solid rgba(169, 199, 255, 0.42);
+  outline: 3px solid rgba(236, 173, 190, 0.42);
   outline-offset: 2px;
 }
 
@@ -425,7 +425,7 @@ select:focus-visible {
 .trend-summary__item {
   padding: 13px 14px;
   border-radius: 14px;
-  background: rgba(11, 18, 27, 0.25);
+  background: rgba(19, 12, 16, 0.25);
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
@@ -448,15 +448,15 @@ select:focus-visible {
   margin-top: 8px;
   padding: 10px 6px 2px;
   border-radius: 16px;
-  background: rgba(9, 15, 23, 0.18);
+  background: rgba(16, 10, 13, 0.18);
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .chart-reading-note {
   margin: 12px 0 0;
   padding: 12px 14px;
-  border-left: 2px solid rgba(118, 205, 189, 0.55);
-  background: rgba(118, 205, 189, 0.055);
+  border-left: 2px solid rgba(182, 112, 136, 0.55);
+  background: rgba(182, 112, 136, 0.055);
   color: var(--ink-soft);
   border-radius: 0 10px 10px 0;
 }
@@ -472,7 +472,7 @@ select:focus-visible {
   padding: 14px 16px;
   min-width: 220px;
   border-radius: 14px;
-  background: rgba(9, 15, 23, 0.24);
+  background: rgba(16, 10, 13, 0.24);
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
@@ -493,10 +493,10 @@ select:focus-visible {
 .wave-visual.wave-visual--swell {
   margin-top: 18px;
   height: clamp(230px, 34vw, 320px);
-  border: 1px solid rgba(126, 168, 247, 0.12);
+  border: 1px solid rgba(194, 118, 143, 0.12);
   background:
-    radial-gradient(circle at 50% 100%, rgba(126, 168, 247, calc(0.08 + var(--wave-intensity, 0) * 0.12)), transparent 62%),
-    linear-gradient(180deg, rgba(18, 31, 45, 0.86), rgba(9, 18, 28, 0.96));
+    radial-gradient(circle at 50% 100%, rgba(194, 118, 143, calc(0.08 + var(--wave-intensity, 0) * 0.12)), transparent 62%),
+    linear-gradient(180deg, rgba(29, 17, 23, 0.86), rgba(16, 10, 13, 0.96));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 24px 60px rgba(0, 0, 0, 0.16);
 }
 
@@ -509,7 +509,7 @@ select:focus-visible {
 
 .wave-ride-progress__bar {
   background: linear-gradient(90deg, var(--pd-calm-teal), var(--pd-calm-accent));
-  box-shadow: 0 0 18px rgba(126, 168, 247, 0.22);
+  box-shadow: 0 0 18px rgba(194, 118, 143, 0.22);
 }
 
 .wave-visual.wave-visual--swell.wave-visual--storm {
@@ -525,7 +525,7 @@ select:focus-visible {
 .wave-tool-card {
   min-height: 150px;
   background:
-    linear-gradient(180deg, rgba(30, 45, 59, 0.92), rgba(25, 36, 49, 0.95));
+    linear-gradient(180deg, rgba(46, 28, 37, 0.92), rgba(38, 23, 30, 0.95));
 }
 
 .wave-tool-card h2 {
@@ -622,7 +622,7 @@ select:focus-visible {
   margin: 0 0 14px;
   padding: 5px 11px;
   border-radius: var(--radius-pill);
-  background: rgba(126, 168, 247, 0.16);
+  background: rgba(194, 118, 143, 0.16);
   color: var(--pd-calm-accent);
   font-size: 0.78rem;
   font-weight: 650;
@@ -714,19 +714,19 @@ select:focus-visible {
   margin: 0 0 40px;
   padding: 18px 22px;
   border-radius: 20px;
-  background: linear-gradient(100deg, rgba(118, 205, 189, 0.18), rgba(26, 35, 50, 0.2) 48%);
-  border: 1px solid rgba(118, 205, 189, 0.34);
+  background: linear-gradient(100deg, rgba(182, 112, 136, 0.18), rgba(36, 22, 29, 0.2) 48%);
+  border: 1px solid rgba(182, 112, 136, 0.34);
 }
 
 .hoy-next__card--quiet {
   background: transparent;
   border-style: dashed;
-  border-color: rgba(154, 168, 188, 0.4);
+  border-color: rgba(184, 165, 174, 0.4);
 }
 
 .hoy-next__card--feedback {
-  background: linear-gradient(100deg, rgba(154, 168, 188, 0.14), rgba(26, 35, 50, 0.16) 48%);
-  border-color: rgba(154, 168, 188, 0.45);
+  background: linear-gradient(100deg, rgba(184, 165, 174, 0.14), rgba(36, 22, 29, 0.16) 48%);
+  border-color: rgba(184, 165, 174, 0.45);
 }
 
 .hoy-feedback-status {
@@ -779,7 +779,7 @@ select:focus-visible {
 
 .hoy-scale {
   padding: 18px 0;
-  border-bottom: 1px solid rgba(154, 168, 188, 0.22);
+  border-bottom: 1px solid rgba(184, 165, 174, 0.22);
   background: none;
 }
 
@@ -854,7 +854,7 @@ select:focus-visible {
 }
 
 .hoy-panel {
-  background: rgba(26, 35, 50, 0.55);
+  background: rgba(36, 22, 29, 0.55);
 }
 
 .hoy .trend-summary__value {

@@ -198,7 +198,7 @@ export default function DailyStatisticsPanel({
                         const point = payload?.[0]?.payload as { date: string; x: number; y: number } | undefined;
                         return active && point ? <div className="statistics-tooltip"><strong>{formatDay(point.date)}</strong><p>{xVariable.label}: {formatNumber(point.x)}</p><p>{yVariable.label}: {formatNumber(point.y)}</p></div> : null;
                       }} />
-                      <Scatter data={pairs} fill="#3987e5" />
+                      <Scatter data={pairs} fill="#c2768f" />
                     </ScatterChart>
                   </ResponsiveContainer>
                 </div>

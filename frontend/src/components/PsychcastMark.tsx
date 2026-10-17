@@ -19,7 +19,7 @@ interface Props {
 }
 
 /**
- * The PsychDeep mark: the app's wave metaphor folded into a disc.
+ * The Psychcast mark: the app's wave metaphor folded into a disc.
  *
  * The geometry comes from markGeometry.generated.ts, which the icon script
  * writes at the same time as the PNG and SVG icons — the logo in the chrome,
@@ -34,7 +34,7 @@ interface Props {
  * Decorative: the mark is aria-hidden everywhere, and what it means is
  * carried by text next to it.
  */
-export default function PsychDeepMark({ variant = "master", className }: Props) {
+export default function PsychcastMark({ variant = "master", className }: Props) {
   // useId() emits colons, which are legal in an id but awkward inside url().
   const id = useId().replace(/[^a-zA-Z0-9]/g, "");
   const curves = variant === "master" ? MASTER_CURVES : COMPACT_CURVES;
