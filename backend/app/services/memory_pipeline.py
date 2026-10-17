@@ -2,7 +2,7 @@
 
 This module is the first backend layer for ADR-0005. It is not yet wired into
 the patient chat or background worker; callers must consent-gate any clinical
-data transfer. Source text stays in current PsychDeep stores, and every derived
+data transfer. Source text stays in existing clinical stores, and every derived
 memory item must keep attribution and source references.
 """
 from __future__ import annotations

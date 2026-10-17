@@ -3,7 +3,7 @@ import { api, formatDay, LongitudinalStateOut, PatientTimelineOut } from "../api
 import { PatientTrajectoryChart } from "../components/ClinicalCharts";
 import { PatientTrendSummary } from "../components/PatientTrendSummary";
 import ComparisonDetails, { ComparisonFacts } from "../components/ComparisonDetails";
-import PsychDeepLoader from "../components/PsychDeepLoader";
+import PsychcastLoader from "../components/PsychcastLoader";
 import { readComparison } from "./longitudinalModel";
 
 interface PatientStateForTrends {
@@ -71,7 +71,7 @@ export default function TrendsPage() {
         </section>
       )}
 
-      {loading && !error && <PsychDeepLoader size="md" label="Cargando tus tendencias…" />}
+      {loading && !error && <PsychcastLoader size="md" label="Cargando tus tendencias…" />}
 
       <section className="card" aria-labelledby="timeline-heading">
         <div className="today-separator">1 · Observar</div>

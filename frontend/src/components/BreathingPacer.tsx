@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import PsychDeepMark from "./PsychDeepMark";
+import PsychcastMark from "./PsychcastMark";
 
 type BreathPhase = "inhale" | "hold" | "exhale";
 
@@ -55,11 +55,11 @@ export default function BreathingPacer() {
 
   return (
     <div className="breathing-pacer">
-      {/* The pacer is the PsychDeep mark itself, breathing. The phase logic
+      {/* The pacer is the Psychcast mark itself, breathing. The phase logic
           above stays the only clock: it writes the phase here and the
           stylesheet does the rest — no timers, audio or state in the mark. */}
       <div className="breathing-mark" data-phase={running ? phase.id : "rest"} aria-hidden="true">
-        <PsychDeepMark />
+        <PsychcastMark />
       </div>
       <p className="breathing-label">{running && !immersive ? phase.label : "Pulsa iniciar para comenzar"}</p>
       <p className="breathing-ratio">4 s inspirar - 2 s sostener - 6 s exhalar - {TOTAL_SECONDS}s por ciclo</p>
@@ -83,7 +83,7 @@ export default function BreathingPacer() {
             <div className="breathing-halo breathing-halo-two" aria-hidden="true" />
             <div className="breathing-halo breathing-halo-three" aria-hidden="true" />
             <div className="breathing-mark breathing-mark--immersive" data-phase={phase.id} aria-hidden="true">
-              <PsychDeepMark />
+              <PsychcastMark />
             </div>
             <p className="breathing-immersive-label" aria-live="polite">{phase.label}</p>
             <p className="breathing-immersive-ratio">4 · 2 · 6</p>

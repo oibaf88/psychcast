@@ -230,14 +230,14 @@ function profile(angle: number, amp: number, sharp: number): number {
 function paletteFor(surge: number, tension: number): WavePalette {
   const mood = clamp01(tension * 0.78 + surge * 0.22);
   return {
-    frontHi: mixHex("#8ed4c6", "#f4fbff", mood),
-    frontMid: mixHex("#6aa4ea", "#3d78d8", mood),
-    frontLo: mixHex("#3c6eb4", "#17346f", mood),
-    backHi: mixHex("#c5d6fb", "#e7f1ff", mood),
-    backLo: mixHex("#6c98f4", "#355892", mood),
-    midHi: mixHex("#b7e6df", "#d9fff6", mood),
-    midLo: mixHex("#4d86c8", "#2a4f92", mood),
-    foam: mixHex("#d7e8f8", "#ffffff", mood),
+    frontHi: mixHex("#d48ba0", "#fff0f4", mood),
+    frontMid: mixHex("#bd718a", "#923e58", mood),
+    frontLo: mixHex("#84364f", "#481b2c", mood),
+    backHi: mixHex("#e2bdc8", "#f7e8ed", mood),
+    backLo: mixHex("#a85d76", "#633047", mood),
+    midHi: mixHex("#e8c6d0", "#fff1f5", mood),
+    midLo: mixHex("#9b4b65", "#55243a", mood),
+    foam: mixHex("#f2dfe5", "#ffffff", mood),
   };
 }
 

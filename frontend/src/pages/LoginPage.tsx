@@ -2,7 +2,7 @@ import { FormEvent, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { homePathForRole } from "../api";
 import { useAuth } from "../auth/AuthContext";
-import PsychDeepLogo from "../components/PsychDeepLogo";
+import PsychcastLogo from "../components/PsychcastLogo";
 
 const SHOW_LOCAL_DEMO = import.meta.env.DEV;
 const DEMO_ACCOUNTS = [
@@ -41,9 +41,9 @@ export default function LoginPage() {
     <div className="auth-page">
       <div className="auth-brand-lockup">
         <div className="auth-brand" aria-hidden="true">
-          <PsychDeepLogo className="auth-brand__logo" />
+          <PsychcastLogo className="auth-brand__logo" />
         </div>
-        <h1>psychDeep: cuidamos de tu salud</h1>
+        <h1>Psychcast: cuidamos de tu salud</h1>
       </div>
       <form onSubmit={onSubmit} className="auth-form">
         {notice && <p className="info" role="status">{notice}</p>}

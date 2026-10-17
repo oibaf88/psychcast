@@ -1,7 +1,7 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { api, ChatMessageOut, ChatOut } from "../api";
 import ModelStamp from "../components/ModelStamp";
-import PsychDeepLoader from "../components/PsychDeepLoader";
+import PsychcastLoader from "../components/PsychcastLoader";
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<ChatMessageOut[]>([]);
@@ -129,7 +129,7 @@ export default function ChatPage() {
             )}
           </div>
         ))}
-        {busy && <PsychDeepLoader size="sm" label="PsychDeep está preparando tu respuesta…" />}
+        {busy && <PsychcastLoader size="sm" label="Psychcast está preparando tu respuesta…" />}
         <div ref={bottomRef} />
       </div>
       <form onSubmit={onSubmit} className="chat-input-row">

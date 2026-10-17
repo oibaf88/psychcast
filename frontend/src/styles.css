@@ -1,39 +1,38 @@
 @import "./fonts.css";
 
 /* =====================================================================
- * PsychDeep design system — style layer only.
+ * Psychcast design system — style layer only.
  *
- * This file carries the PsychDeep colour and type system. It deliberately
+ * This file carries the Psychcast colour and type system. It deliberately
  * changes nothing about the app's
  * structure or behaviour: no markup, no routes, no logic, no copy. Where
  * the design system and the product's needs disagree, the product wins —
  * the places that happens are marked SEMANTIC, PRODUCT or A11Y below.
  *
- * Palette (PsychDeep tokens):
- *   page #0f1419 · surface #1a2332 · raised #202c3d · border #2d3a4f
- *   text #e7ecf3 · muted #9aa8bc
- *   accent #6c98f4 · danger #e36a6a · success #55bd91 · warning #e5b75f
+ * Palette (Psychcast tokens):
+ *   page #120b0f · surface #24161d · raised #302029 · border #49343d
+ *   text #f1e8ec · muted #b8a5ae
+ *   accent #c2768f · danger #e36a6a · success #55bd91 · warning #e5b75f
  * Type: Inter throughout (the system defines a single sans face).
  * Depth: flat fills and hairline borders only — the system uses no shadow.
  *
- * A11Y note. The accent #6c98f4 measures 6.0:1 on the page surface, so it
- * is safe as text and as a border; white on accent measures 3.1:1, so
- * accent-as-a-background always carries dark ink, never white. Full-bleed
- * danger surfaces (the crisis screen) use --danger-strong, a deepened red
+ * A11Y note. The accent #c2768f measures 5.8:1 on the page surface, so it
+ * is safe as text and as a border; dark ink is used on accent surfaces.
+ * Full-bleed danger surfaces (the crisis screen) use --danger-strong, a deepened red
  * that clears AA under white text; the --danger token itself is tuned for
- * text and hairlines on dark, where it reads 6.4:1.
+ * text and hairlines on dark, where it reads 6.0:1.
  * ===================================================================== */
 :root {
   color-scheme: dark;
 
-  /* --- PsychDeep base palette ---------------------------------------- */
-  --pd-bg: #0f1419;
-  --pd-surface: #1a2332;
-  --pd-surface-2: #202c3d;
-  --pd-border: #2d3a4f;
-  --pd-text: #e7ecf3;
-  --pd-muted: #9aa8bc;
-  --pd-accent: #6c98f4;
+  /* --- Psychcast base palette ---------------------------------------- */
+  --pd-bg: #120b0f;
+  --pd-surface: #24161d;
+  --pd-surface-2: #302029;
+  --pd-border: #49343d;
+  --pd-text: #f1e8ec;
+  --pd-muted: #b8a5ae;
+  --pd-accent: #c2768f;
   --pd-danger: #e36a6a;
   --pd-success: #55bd91;
   --pd-warning: #e5b75f;
@@ -46,22 +45,19 @@
   --surface-2: var(--pd-surface-2);
   --border: var(--pd-border);
   --ink: var(--pd-text);
-  --ink-soft: #c8d2e0;
+  --ink-soft: #d4c5cb;
   --ink-muted: var(--pd-muted);
-  /* Lightened from the obvious #7b8a9f step, which measured 4.49:1 on the
-     card surface and missed AA by a hair. */
-  --ink-faint: #8593a8;
+  /* Muted mauve secondary text; it measures 5.7:1 against the card surface. */
+  --ink-faint: #a58e98;
 
   /* The top chrome reads as a lift off the page rather than a slab of
      colour — the design system builds its header the same way, with a
      fade into the page and a hairline underneath. */
-  --chrome-bg: linear-gradient(180deg, rgba(26, 35, 50, 0.9), rgba(15, 20, 25, 0));
+  --chrome-bg: linear-gradient(180deg, rgba(36, 22, 29, 0.9), rgba(18, 11, 15, 0));
   --chrome-ink: var(--pd-text);
 
-  /* A11Y: the system's Button paints white on the accent, but that pair is
-     3.1:1 and the app's buttons run at 0.95rem — under the large-text
-     threshold, so AA wants 4.5:1. Accent-as-a-surface therefore carries
-     the page's dark ink (6.55:1) and the accent stays untouched. */
+  /* A11Y: small button labels use the dark page ink on accent surfaces for
+     a 5.8:1 contrast ratio. */
   --ink-on-accent: var(--pd-bg);
 
   /* Kept from the previous brand layer so no rule has to change. */
@@ -84,8 +80,8 @@
   --success-ink: #9ce2c5;
   --success-bg: rgba(85, 189, 145, 0.1);
   --success-border: rgba(85, 189, 145, 0.5);
-  --accent-bg: rgba(108, 152, 244, 0.1);
-  --accent-border: rgba(108, 152, 244, 0.5);
+  --accent-bg: rgba(194, 118, 143, 0.1);
+  --accent-border: rgba(194, 118, 143, 0.5);
   --purple-bg: rgba(185, 163, 227, 0.1);
   --purple-ink: #d9cdf2;
 
@@ -378,7 +374,7 @@ button:disabled {
   position: absolute;
   inset: 6%;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(102, 199, 197, 0.08) 0%, rgba(102, 199, 197, 0.02) 48%, transparent 72%);
+  background: radial-gradient(circle, rgba(182, 112, 136, 0.08) 0%, rgba(182, 112, 136, 0.02) 48%, transparent 72%);
   filter: blur(6px);
   pointer-events: none;
 }
@@ -534,8 +530,8 @@ button:disabled {
   padding: 24px;
   overflow: hidden;
   background:
-    radial-gradient(circle at 50% 47%, rgba(82, 184, 172, 0.2), transparent 31%),
-    rgba(6, 13, 22, 0.94);
+    radial-gradient(circle at 50% 47%, rgba(145, 76, 97, 0.2), transparent 31%),
+    rgba(18, 11, 15, 0.94);
 }
 
 .breathing-immersive-stage {
@@ -573,7 +569,7 @@ button:disabled {
   min-width: 260px;
   min-height: 260px;
   margin: 0;
-  box-shadow: 0 0 0 16px rgba(111, 218, 195, 0.1), 0 0 100px rgba(108, 152, 244, 0.2);
+  box-shadow: 0 0 0 16px rgba(182, 112, 136, 0.1), 0 0 100px rgba(194, 118, 143, 0.2);
 }
 
 .breathing-mark--immersive .pd-mark__curve {
@@ -587,7 +583,7 @@ button:disabled {
   z-index: 1;
   width: min(80vw, 650px);
   aspect-ratio: 1;
-  border: 1px solid rgba(135, 225, 211, 0.22);
+  border: 1px solid rgba(216, 151, 169, 0.22);
   border-radius: 48% 52% 43% 57% / 54% 44% 56% 46%;
   pointer-events: none;
   animation: pd-halo-drift 12s ease-in-out infinite alternate;
@@ -595,14 +591,14 @@ button:disabled {
 
 .breathing-halo-two {
   width: min(92vw, 730px);
-  border-color: rgba(108, 152, 244, 0.2);
+  border-color: rgba(194, 118, 143, 0.2);
   animation-duration: 15s;
   animation-delay: -5s;
 }
 
 .breathing-halo-three {
   width: min(104vw, 820px);
-  border-color: rgba(169, 237, 218, 0.13);
+  border-color: rgba(205, 127, 148, 0.13);
   animation-duration: 18s;
   animation-delay: -9s;
 }
@@ -632,7 +628,7 @@ button:disabled {
 }
 
 /* --- the breathing mark -------------------------------------------------
- * PRODUCT: the pacer is the PsychDeep mark, not an ornament next to it. The
+ * PRODUCT: the pacer is the Psychcast mark, not an ornament next to it. The
  * patient learns one shape — the wave disc on their home screen — and that
  * same shape is what breathes with them here.
  *
@@ -652,7 +648,7 @@ button:disabled {
   /* The system builds depth from flat fills, so the mark's lift is one soft
      halo rather than a shadow stack. */
   border-radius: 50%;
-  box-shadow: 0 0 0 10px rgba(108, 152, 244, 0.08);
+  box-shadow: 0 0 0 10px rgba(194, 118, 143, 0.08);
 }
 
 .pd-mark {
@@ -660,6 +656,7 @@ button:disabled {
   width: 100%;
   height: 100%;
   overflow: visible;
+  filter: hue-rotate(145deg) saturate(0.85);
 }
 
 .breathing-mark .pd-mark {
@@ -756,8 +753,8 @@ button:disabled {
   /* PRODUCT, as above: still water, now sitting in a night sky rather than
      a white one, so the wave's own blues stay the brightest thing in it. */
   background:
-    linear-gradient(180deg, rgba(32, 44, 61, 0.9), rgba(18, 30, 40, 0.85) 46%, var(--bg)),
-    radial-gradient(circle at 20% 24%, rgba(108, 152, 244, 0.18), rgba(108, 152, 244, 0) 30%);
+    linear-gradient(180deg, rgba(48, 30, 39, 0.9), rgba(28, 17, 22, 0.85) 46%, var(--bg)),
+    radial-gradient(circle at 20% 24%, rgba(194, 118, 143, 0.18), rgba(194, 118, 143, 0) 30%);
   margin-top: 12px;
 }
 
@@ -786,7 +783,7 @@ button:disabled {
 
 .wave-foam {
   fill: none;
-  stroke: rgba(214, 230, 255, 0.72);
+  stroke: rgba(242, 216, 224, 0.72);
   stroke-width: 2.8;
   stroke-linecap: round;
   stroke-dasharray: 10 6;
@@ -799,8 +796,8 @@ button:disabled {
 
 .wave-visual--storm {
   background:
-    radial-gradient(ellipse at 50% 10%, rgba(202, 233, 255, 0.24), transparent 35%),
-    linear-gradient(180deg, #253b57 0%, #172437 42%, #0f1419 100%);
+    radial-gradient(ellipse at 50% 10%, rgba(242, 216, 224, 0.24), transparent 35%),
+    linear-gradient(180deg, #4a2b38 0%, #2a1921 42%, #120b0f 100%);
 }
 
 .wave-visual--storm .wave-front {
@@ -808,7 +805,7 @@ button:disabled {
 }
 
 .wave-visual--storm .wave-foam {
-  stroke: rgba(238, 249, 255, 0.95);
+  stroke: rgba(255, 242, 246, 0.95);
   stroke-width: 4.4;
 }
 
@@ -963,8 +960,8 @@ button:disabled {
   text-align: center;
   padding: 40px;
 }
-/* --- PsychDeep brand assets and wait states -------------------------- */
-.psychdeep-logo {
+/* --- Psychcast brand assets and wait states -------------------------- */
+.psychcast-logo {
   display: block;
   width: 100%;
   height: 100%;
@@ -972,7 +969,7 @@ button:disabled {
   flex: none;
 }
 
-.psychdeep-loader {
+.psychcast-loader {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -982,12 +979,12 @@ button:disabled {
   text-align: center;
 }
 
-.psychdeep-loader--sm { min-height: 56px; }
-.psychdeep-loader--md { min-height: 160px; }
-.psychdeep-loader--lg { min-height: 260px; }
+.psychcast-loader--sm { min-height: 56px; }
+.psychcast-loader--md { min-height: 160px; }
+.psychcast-loader--lg { min-height: 260px; }
 
-.psychdeep-loader__video,
-.psychdeep-loader__fallback {
+.psychcast-loader__video,
+.psychcast-loader__fallback {
   display: block;
   width: 64px;
   height: 64px;
@@ -996,34 +993,38 @@ button:disabled {
   flex: none;
 }
 
-.psychdeep-loader--sm .psychdeep-loader__video,
-.psychdeep-loader--sm .psychdeep-loader__fallback {
+.psychcast-loader__video {
+  filter: hue-rotate(145deg) saturate(0.85);
+}
+
+.psychcast-loader--sm .psychcast-loader__video,
+.psychcast-loader--sm .psychcast-loader__fallback {
   width: 56px;
   height: 56px;
 }
 
-.psychdeep-loader--md .psychdeep-loader__video,
-.psychdeep-loader--md .psychdeep-loader__fallback {
+.psychcast-loader--md .psychcast-loader__video,
+.psychcast-loader--md .psychcast-loader__fallback {
   width: 108px;
   height: 108px;
 }
 
-.psychdeep-loader--lg .psychdeep-loader__video,
-.psychdeep-loader--lg .psychdeep-loader__fallback {
+.psychcast-loader--lg .psychcast-loader__video,
+.psychcast-loader--lg .psychcast-loader__fallback {
   width: 168px;
   height: 168px;
 }
 
-.psychdeep-loader__fallback { display: none; }
+.psychcast-loader__fallback { display: none; }
 
-.psychdeep-loader__label {
+.psychcast-loader__label {
   color: var(--ink-muted);
   font-size: 0.9rem;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .psychdeep-loader__video { display: none; }
-  .psychdeep-loader__fallback { display: block; }
+  .psychcast-loader__video { display: none; }
+  .psychcast-loader__fallback { display: block; }
 }
 
 
@@ -1166,7 +1167,7 @@ button.linkish {
   display: inline-block;
   padding: 2px 8px;
   border-radius: var(--radius-pill);
-  background: rgba(108, 152, 244, 0.16);
+  background: rgba(194, 118, 143, 0.16);
   color: var(--ink);
   font-size: 0.85rem;
   font-weight: 650;
@@ -2335,12 +2336,12 @@ tr.direction-peor td:first-child {
   font-style: italic;
 }
 
-.copilot-pending .psychdeep-loader {
+.copilot-pending .psychcast-loader {
   align-items: flex-start;
   width: auto;
 }
 
-.copilot-pending .psychdeep-loader__label {
+.copilot-pending .psychcast-loader__label {
   font-style: normal;
 }
 

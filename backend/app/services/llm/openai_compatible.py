@@ -64,7 +64,7 @@ PROVIDER_NAME = "openai_compatible"
 # Cloudflare Bot Fight Mode challenges the default python-httpx user agent
 # before the request reaches LM Studio. This name is not a browser impersonation;
 # it is the application client, and the tunnel accepts it.
-API_USER_AGENT = "PsychDeep-API/1"
+API_USER_AGENT = "Psychcast-API/1"
 
 # Local servers are slower than a hosted API — a 7B model on CPU can take a
 # while for a long diary entry — but the patient is waiting on Agent 1, so

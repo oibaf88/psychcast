@@ -1,7 +1,7 @@
 import { NavLink } from "react-router-dom";
 import { ROLE_LABELS, UserRole } from "../api";
 import { useAuth } from "../auth/AuthContext";
-import PsychDeepLogo from "./PsychDeepLogo";
+import PsychcastLogo from "./PsychcastLogo";
 
 type MenuItem = { to: string; label: string; end?: boolean };
 
@@ -62,8 +62,8 @@ export default function NavBar() {
     return (
       <nav className="navbar" aria-label="Navegación principal">
         <div className="navbar-brand">
-          <PsychDeepLogo className="navbar-mark" />
-          <span>PsychDeep</span>
+          <PsychcastLogo className="navbar-mark" />
+          <span>Psychcast</span>
         </div>
         <div className="navbar-links">
           <MenuLink to="/login">Entrar</MenuLink>
@@ -78,8 +78,8 @@ export default function NavBar() {
   return (
     <nav className="navbar" aria-label="Navegación principal">
       <div className="navbar-brand">
-        <PsychDeepLogo className="navbar-mark" />
-        <span>PsychDeep</span>
+        <PsychcastLogo className="navbar-mark" />
+        <span>Psychcast</span>
       </div>
 
       <div className="navbar-links">

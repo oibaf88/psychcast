@@ -11,10 +11,10 @@ interface Props {
  *
  * Reduced-motion users receive the static mark instead of the animation.
  */
-export default function PsychDeepLoader({ size = "md", label, className }: Props) {
+export default function PsychcastLoader({ size = "md", label, className }: Props) {
   const classes = [
-    "psychdeep-loader",
-    `psychdeep-loader--${size}`,
+    "psychcast-loader",
+    `psychcast-loader--${size}`,
     className,
   ].filter(Boolean).join(" ");
 
@@ -25,25 +25,25 @@ export default function PsychDeepLoader({ size = "md", label, className }: Props
       aria-live={label ? "polite" : undefined}
     >
       <video
-        className="psychdeep-loader__video"
+        className="psychcast-loader__video"
         autoPlay
         loop
         muted
         playsInline
         preload="auto"
-        poster="/psychDeep%20logo.png"
+        poster="/psychcast-icon.svg"
         aria-hidden="true"
       >
-        <source src="/moving%20psychdeep%20logo.mp4" type="video/mp4" />
+        <source src="/psychcast-mark-animation.mp4" type="video/mp4" />
       </video>
       <img
-        className="psychdeep-loader__fallback"
-        src="/psychDeep%20logo.png"
+        className="psychcast-loader__fallback"
+        src="/psychcast-icon.svg"
         alt=""
         aria-hidden="true"
         draggable={false}
       />
-      {label && <span className="psychdeep-loader__label">{label}</span>}
+      {label && <span className="psychcast-loader__label">{label}</span>}
     </div>
   );
 }

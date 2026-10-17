@@ -11,7 +11,7 @@ import { dashboardChangeDetail, dashboardChangeHeadline } from "./professionalCh
 import { riskEngineBandText, riskEngineScoreText } from "../riskEngineReading";
 import { useAuth } from "../auth/AuthContext";
 import CopilotPanel from "../components/CopilotPanel";
-import PsychDeepLoader from "../components/PsychDeepLoader";
+import PsychcastLoader from "../components/PsychcastLoader";
 
 /**
  * Standalone copilot: pick a patient from the menu and talk to Agent 3
@@ -49,7 +49,7 @@ export default function CopilotPage() {
     [patients, selected]
   );
 
-  if (loading) return <div className="loading"><PsychDeepLoader size="md" label="Cargando pacientes…" /></div>;
+  if (loading) return <div className="loading"><PsychcastLoader size="md" label="Cargando pacientes…" /></div>;
 
   return (
     <div className="page">

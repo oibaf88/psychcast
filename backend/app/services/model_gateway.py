@@ -1,4 +1,4 @@
-"""Provider-neutral Model Gateway for PsychDeep vNext.
+"""Provider-neutral Model Gateway for Psychcast.
 
 The clinical domain chooses a stable deployment alias; only this module knows
 how that alias maps to a provider endpoint. There is deliberately no
