@@ -1,4 +1,4 @@
-"""Whether inference is scoped to the authenticated account.
+"""Whether authenticated requests use the shared clinical-admin model.
 
 `llm_config.resolve` reads this directly. There is no import-time patch.
 """

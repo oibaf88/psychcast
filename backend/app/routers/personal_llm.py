@@ -1,4 +1,4 @@
-"""Authenticated account model preferences; Access credentials remain in Render."""
+"""Authenticated shared clinical-admin model settings; Access remains in Render."""
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
@@ -17,11 +17,16 @@ class PersonalLLMSettingsIn(BaseModel):
     # None preserves ciphertext, an empty string revokes, nonempty rotates.
     model_config = ConfigDict(extra="forbid")
     provider: str = Field(pattern="^(anthropic|openai|openai_compatible)$")
-    chat_model: str = Field(default="", max_length=192)
-    analysis_model: str = Field(default="", max_length=192)
-    copilot_model: str = Field(default="", max_length=192)
+    chat_model: str = Field(min_length=1, max_length=192)
+    analysis_model: str = Field(min_length=1, max_length=192)
+    copilot_model: str = Field(min_length=1, max_length=192)
     max_tokens: int = Field(default=4096, ge=256, le=32768)
     timeout_seconds: int = Field(default=120, ge=5, le=5000)
+    lm_api_key: str | None = Field(default=None, max_length=8192, repr=False)
+
+
+class PersonalModelCatalogIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     lm_api_key: str | None = Field(default=None, max_length=8192, repr=False)
 
 
@@ -52,29 +57,47 @@ def update_personal_settings(
         db.rollback()
         raise HTTPException(status_code=422, detail=str(exc)) from None
     audit.log(db, actor_id=user.id, actor_role=user.role,
-              action="personal_llm_settings_updated", entity_type="llm_user_preferences",
-              entity_id=user.id, extra={"provider": payload.provider})
+              action="shared_llm_settings_updated", entity_type="shared_llm_settings",
+              entity_id=personal_llm._admin_owner_id(db) or user.id,
+              extra={"provider": payload.provider, "models_selected": True})
     return _status_for(db, user)
 
 
 @router.delete("")
 def delete_personal_settings(db: Session = Depends(get_db), user: User = Depends(require_admin)):
-    row = db.get(personal_llm.UserLLMPreference, user.id)
-    if row is not None:
-        db.delete(row)
-        db.commit()
+    personal_llm.clear_shared_selection(db)
     audit.log(db, actor_id=user.id, actor_role=user.role,
-              action="personal_llm_settings_deleted", entity_type="llm_user_preferences",
-              entity_id=user.id)
+              action="shared_llm_settings_deleted", entity_type="shared_llm_settings",
+              entity_id=personal_llm._admin_owner_id(db) or user.id)
     return _status_for(db, user)
 
 
+@router.post("/models")
+def read_local_models(
+    payload: PersonalModelCatalogIn | None = None,
+    db: Session = Depends(get_db), user: User = Depends(require_admin),
+):
+    """List available local models without persisting a supplied LM Studio key."""
+    try:
+        return personal_llm.list_local_models(db, user.id, payload.lm_api_key if payload else None)
+    except (ValueError, RuntimeError):
+        return {"models": [], "reachable": False,
+                "detail": "No se pudo consultar LM Studio. Revisa la API key y el acceso de Cloudflare del servidor."}
+
+
 @router.post("/test")
-def test_personal_settings(db: Session = Depends(get_db), user: User = Depends(require_admin)):
-    """Send a synthetic prompt using only the current account's saved key."""
+def test_personal_settings(
+    payload: PersonalLLMSettingsIn | None = None,
+    db: Session = Depends(get_db), user: User = Depends(require_admin),
+):
+    """Send a synthetic prompt to the unsaved candidate, or current selection."""
     try:
         from app.services.llm import build_provider
-        resolved = personal_llm.resolve(db, user.id)
+        resolved = (
+            personal_llm.resolve_candidate(db, user.id, payload)
+            if payload is not None
+            else personal_llm.resolve_active(db, user.id)
+        )
         if resolved.provider == "openai_compatible":
             local_llm_access.assert_can_use_local_llm(user)
         provider = build_provider(resolved)
@@ -96,8 +119,8 @@ def test_personal_settings(db: Session = Depends(get_db), user: User = Depends(r
         return {"ok": False, "detail": str(exc)}
     except local_llm_access.LocalLlmAccessDenied:
         return {"ok": False, "detail": "Acceso denegado para usar este proveedor local. Contacta con la administración si crees que es un error."}
-    except (ValueError, RuntimeError):
-        return {"ok": False, "detail": "La configuración de tu cuenta o del gateway está incompleta. Revisa tu API key o contacta con la administración."}
+    except (ValueError, RuntimeError) as exc:
+        return {"ok": False, "detail": str(exc)}
     except Exception:
         # Never relay exception text: proxies can echo headers and credentials.
         return {"ok": False, "detail": "Error de conexión no identificado. Revisa los registros seguros del backend."}

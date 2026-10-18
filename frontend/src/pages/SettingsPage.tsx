@@ -3,33 +3,60 @@ import { api } from "../api";
 import PsychcastLoader from "../components/PsychcastLoader";
 
 type Provider = "anthropic" | "openai" | "openai_compatible";
+type Busy = "" | "save" | "test" | "remove" | "models";
+
+interface LocalModel {
+  id: string;
+  loaded: boolean;
+}
 
 interface PersonalStatus {
   configured: boolean;
-  provider: Provider;
+  provider: Provider | "";
+  chat_model: string;
+  analysis_model: string;
+  copilot_model: string;
   max_tokens: number;
   timeout_seconds: number;
   local_available: boolean;
   lm_api_key_configured: boolean;
+  local_models: LocalModel[];
+  local_models_reachable: boolean;
+  ready: boolean;
   anthropic_allowed: boolean;
+  anthropic_api_key_configured: boolean;
   openai_allowed: boolean;
-  local_llm_usable?: boolean;
+  openai_api_key_configured: boolean;
+  shared_inference_active: boolean;
+}
+
+interface CatalogResult {
+  models: LocalModel[];
+  reachable: boolean;
+  detail: string;
 }
 
 const PROVIDER_LABEL: Record<Provider, string> = {
-  openai_compatible: "Local",
+  openai_compatible: "Local · LM Studio",
   anthropic: "Anthropic",
-  openai: "Codex / ChatGPT",
+  openai: "OpenAI · Codex / ChatGPT API",
 };
 
 const endpoint = "/api/v1/settings/llm/personal";
 
 export default function SettingsPage() {
   const [status, setStatus] = useState<PersonalStatus | null>(null);
-  const [provider, setProvider] = useState<Provider>("openai_compatible");
+  const [provider, setProvider] = useState<Provider | "">("");
+  const [chatModel, setChatModel] = useState("");
+  const [analysisModel, setAnalysisModel] = useState("");
+  const [copilotModel, setCopilotModel] = useState("");
+  const [maxTokens, setMaxTokens] = useState(4096);
+  const [timeoutSeconds, setTimeoutSeconds] = useState(120);
+  const [localModels, setLocalModels] = useState<LocalModel[]>([]);
+  const [catalogReachable, setCatalogReachable] = useState(false);
   const [lmApiKey, setLmApiKey] = useState("");
   const [revokeLmKey, setRevokeLmKey] = useState(false);
-  const [busy, setBusy] = useState<"" | "save" | "test" | "remove">("");
+  const [busy, setBusy] = useState<Busy>("");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
@@ -38,37 +65,59 @@ export default function SettingsPage() {
       .then((next) => {
         setStatus(next);
         setProvider(next.provider);
+        setChatModel(next.chat_model);
+        setAnalysisModel(next.analysis_model);
+        setCopilotModel(next.copilot_model);
+        setMaxTokens(next.max_tokens);
+        setTimeoutSeconds(next.timeout_seconds);
+        setLocalModels(next.local_models ?? []);
+        setCatalogReachable(next.local_models_reachable);
       })
       .catch((reason: Error) => setError(reason.message));
   }, []);
 
-  function chooseProvider(next: Provider) {
-    setProvider(next);
+  function clearFeedback() {
     setError("");
     setMessage("");
+  }
+
+  function candidate() {
+    if (!provider) throw new Error("Selecciona un proveedor.");
+    return {
+      provider,
+      chat_model: chatModel.trim(),
+      analysis_model: analysisModel.trim(),
+      copilot_model: copilotModel.trim(),
+      max_tokens: maxTokens,
+      timeout_seconds: timeoutSeconds,
+      lm_api_key: provider === "openai_compatible"
+        ? (revokeLmKey ? "" : (lmApiKey.trim() || null))
+        : null,
+    };
+  }
+
+  function acceptStatus(next: PersonalStatus) {
+    setStatus(next);
+    setProvider(next.provider);
+    setChatModel(next.chat_model);
+    setAnalysisModel(next.analysis_model);
+    setCopilotModel(next.copilot_model);
+    setMaxTokens(next.max_tokens);
+    setTimeoutSeconds(next.timeout_seconds);
+    setLocalModels(next.local_models ?? []);
+    setCatalogReachable(next.local_models_reachable);
   }
 
   async function save() {
     if (!status) return;
     setBusy("save");
-    setError("");
-    setMessage("");
+    clearFeedback();
     try {
-      const lm_api_key = revokeLmKey ? "" : (lmApiKey.trim() || null);
-      const next = await api.put<PersonalStatus>(endpoint, {
-        provider,
-        chat_model: "",
-        analysis_model: "",
-        copilot_model: "",
-        max_tokens: status.max_tokens,
-        timeout_seconds: status.timeout_seconds,
-        lm_api_key,
-      });
-      setStatus(next);
-      setProvider(next.provider);
+      const next = await api.put<PersonalStatus>(endpoint, candidate());
+      acceptStatus(next);
       setLmApiKey("");
       setRevokeLmKey(false);
-      setMessage("Conexión guardada. No se elige un modelo desde aquí.");
+      setMessage("Configuración compartida guardada para todos los usuarios.");
     } catch (reason) {
       setError((reason as Error).message);
     } finally {
@@ -78,10 +127,9 @@ export default function SettingsPage() {
 
   async function test() {
     setBusy("test");
-    setError("");
-    setMessage("");
+    clearFeedback();
     try {
-      const result = await api.post<{ ok: boolean; detail: string }>(endpoint + "/test");
+      const result = await api.post<{ ok: boolean; detail: string }>(endpoint + "/test", candidate());
       if (result.ok) setMessage(result.detail);
       else setError(result.detail);
     } catch (reason) {
@@ -91,18 +139,34 @@ export default function SettingsPage() {
     }
   }
 
+  async function loadModels() {
+    setBusy("models");
+    clearFeedback();
+    try {
+      const result = await api.post<CatalogResult>(endpoint + "/models", {
+        lm_api_key: lmApiKey.trim() || null,
+      });
+      setLocalModels(result.models);
+      setCatalogReachable(result.reachable);
+      if (result.reachable) setMessage(result.detail);
+      else setError(result.detail);
+    } catch (reason) {
+      setError((reason as Error).message);
+    } finally {
+      setBusy("");
+    }
+  }
+
   async function remove() {
-    if (!window.confirm("¿Eliminar la conexión guardada de esta cuenta de administración?")) return;
+    if (!window.confirm("¿Eliminar la configuración compartida? Los usuarios dejarán de tener un proveedor y modelos seleccionados.")) return;
     setBusy("remove");
-    setError("");
-    setMessage("");
+    clearFeedback();
     try {
       const next = await api.del<PersonalStatus>(endpoint);
-      setStatus(next);
-      setProvider(next.provider);
+      acceptStatus(next);
       setLmApiKey("");
       setRevokeLmKey(false);
-      setMessage("Se ha eliminado la conexión guardada.");
+      setMessage("Se ha eliminado la configuración compartida.");
     } catch (reason) {
       setError((reason as Error).message);
     } finally {
@@ -111,107 +175,160 @@ export default function SettingsPage() {
   }
 
   const local = provider === "openai_compatible";
-  const openai = provider === "openai";
-  const keyAvailable = Boolean((status?.lm_api_key_configured && !revokeLmKey) || lmApiKey.trim());
-  const maySave = Boolean(status && (
-    openai
-      ? status.openai_allowed
-      : provider === "anthropic"
-        ? status.anthropic_allowed
-        : status.local_available && status.local_llm_usable !== false && keyAvailable
-  ));
-  const mayTest = Boolean(status?.configured && (!local || (status.local_available && status.local_llm_usable !== false && status.lm_api_key_configured)));
+  const hasModels = Boolean(chatModel.trim() && analysisModel.trim() && copilotModel.trim());
+  const maySave = Boolean(status && provider && hasModels && (provider !== "anthropic" || status.anthropic_allowed));
+  const mayTest = Boolean(provider && hasModels);
+  const providerLabel = status?.provider ? PROVIDER_LABEL[status.provider] : "sin seleccionar";
 
   return (
     <div className="page">
       <h1>Mis modelos</h1>
       <p className="subtitle">
-        Solo el administrador clínico conecta la inferencia y elige el proveedor: local, Anthropic o Codex / ChatGPT.
+        Configuración compartida del administrador clínico: el proveedor y los modelos elegidos se aplican a chat, análisis y copiloto para todos los usuarios.
       </p>
       <section className="card">
-        <h2>Conexión de inferencia</h2>
+        <h2>Proveedor y modelos de inferencia</h2>
         {status && (
           <p className="info">
             {status.configured
-              ? `Selección actual: ${PROVIDER_LABEL[status.provider] ?? status.provider}`
-              : "Todavía no hay una conexión guardada."}
+              ? `Selección compartida actual: ${providerLabel}`
+              : "Todavía no hay proveedor ni modelos seleccionados."}
           </p>
         )}
-        {status && !status.local_available && (
-          <p className="warning" role="status">El acceso local todavía no está preparado en el servidor.</p>
+        {status && !status.shared_inference_active && (
+          <p className="warning" role="status">
+            El backend todavía no usa esta selección compartida. En Render activa LLM_PERSONAL_MODE=true y vuelve a desplegar para que la configuración elegida se aplique a las peticiones autenticadas.
+          </p>
         )}
         {status && (
           <>
-            <label className="field">
+            <label className="field" htmlFor="model-provider">
               <span>Proveedor</span>
-              <select value={provider} onChange={(event) => chooseProvider(event.target.value as Provider)}>
-                <option value="openai_compatible">Local</option>
+              <select id="model-provider" value={provider} disabled={busy !== ""} onChange={(event) => {
+                setProvider(event.target.value as Provider | "");
+                setRevokeLmKey(false);
+                clearFeedback();
+              }}>
+                <option value="">Selecciona un proveedor</option>
+                <option value="openai_compatible">Local · LM Studio por Cloudflare</option>
                 <option value="anthropic" disabled={!status.anthropic_allowed}>Anthropic</option>
-                <option value="openai" disabled={!status.openai_allowed}>Codex / ChatGPT</option>
+                <option value="openai">OpenAI · Codex / ChatGPT API</option>
               </select>
             </label>
-            {local ? (
+
+            {provider && (
               <>
-                <p className="info">
-                  Local usa el modelo que tengas cargado en tu ordenador. Desde aquí no se elige ni se cambia de modelo.
-                </p>
-                <label className="field" htmlFor="personal-lm-api-key">
-                  <span>API key de LM Studio</span>
-                  <input
-                    id="personal-lm-api-key"
-                    type="password"
-                    autoComplete="new-password"
-                    value={lmApiKey}
-                    disabled={busy !== "" || revokeLmKey}
-                    placeholder={status.lm_api_key_configured ? "Configurada · deja vacío para conservar" : "Pega aquí tu API key"}
-                    onChange={(event) => {
-                      setLmApiKey(event.target.value);
-                      setError("");
-                      setMessage("");
-                    }}
-                  />
-                  <span className="meta">
-                    Estado: {status.lm_api_key_configured ? "configurada" : "no configurada"}. Se envía al backend y se guarda cifrada; no se mostrará de nuevo.
-                  </span>
-                </label>
-                {status.lm_api_key_configured && (
-                  <label className="field">
-                    <span>
+                {local && (
+                  <>
+                    <p className="info">
+                      El servidor conecta con LM Studio mediante el túnel aprobado. La API key de LM Studio se cifra en el backend; las credenciales de Cloudflare permanecen en Render.
+                    </p>
+                    {!status.local_available && (
+                      <p className="warning" role="status">
+                        Falta preparar el acceso local en el servidor. Configura en Render MODEL_LOCAL_BASE_URL, MODEL_LOCAL_CF_ACCESS_HOST, MODEL_LOCAL_CF_ACCESS_REQUIRED=true, MODEL_LOCAL_CF_ACCESS_CLIENT_ID, MODEL_LOCAL_CF_ACCESS_CLIENT_SECRET y LLM_USER_CREDENTIALS_KEY.
+                      </p>
+                    )}
+                    <label className="field" htmlFor="personal-lm-api-key">
+                      <span>API key de LM Studio</span>
                       <input
-                        type="checkbox"
-                        checked={revokeLmKey}
-                        disabled={busy !== ""}
+                        id="personal-lm-api-key"
+                        type="password"
+                        autoComplete="new-password"
+                        value={lmApiKey}
+                        disabled={busy !== "" || revokeLmKey}
+                        placeholder={status.lm_api_key_configured ? "Configurada · deja vacío para conservar" : "API key de LM Studio"}
                         onChange={(event) => {
-                          setRevokeLmKey(event.target.checked);
-                          setError("");
+                          setLmApiKey(event.target.value);
+                          clearFeedback();
                         }}
-                      />{" "}
-                      Revocar mi API key al guardar
-                    </span>
+                      />
+                      <span className="meta">
+                        {status.lm_api_key_configured ? "Configurada en el backend." : "Aún no configurada."} Nunca se muestra de nuevo ni se guarda en el navegador.
+                      </span>
+                    </label>
+                    <div className="alert-actions">
+                      <button className="btn-secondary" disabled={busy !== ""} onClick={loadModels}>
+                        {busy === "models" ? "Consultando…" : "Actualizar modelos de LM Studio"}
+                      </button>
+                    </div>
+                    {!catalogReachable && (
+                      <p className="warning" role="status">
+                        No se pudo leer el catálogo. Puedes escribir los IDs exactos que anuncia LM Studio y probarlos antes de guardar.
+                      </p>
+                    )}
+                    {status.lm_api_key_configured && (
+                      <label className="field">
+                        <span>
+                          <input type="checkbox" checked={revokeLmKey} disabled={busy !== ""} onChange={(event) => {
+                            setRevokeLmKey(event.target.checked);
+                            clearFeedback();
+                          }} />{" "}
+                          Revocar la API key de LM Studio al guardar
+                        </span>
+                      </label>
+                    )}
+                  </>
+                )}
+
+                {provider === "anthropic" && status.anthropic_allowed && !status.anthropic_api_key_configured && (
+                  <p className="warning" role="status">
+                    Puedes guardar los IDs, pero falta ANTHROPIC_API_KEY en los secretos del servidor para probar y usar Anthropic.
+                  </p>
+                )}
+                {provider === "anthropic" && !status.anthropic_allowed && (
+                  <p className="warning" role="status">
+                    Anthropic está bloqueado por la política del despliegue. Habilita MODEL_ALLOW_COMMERCIAL=true en Render.
+                  </p>
+                )}
+                {provider === "openai" && !status.openai_api_key_configured && (
+                  <p className="warning" role="status">
+                    Puedes guardar los IDs, pero falta OPENAI_API_KEY en los secretos del servidor para probar y usar OpenAI.
+                  </p>
+                )}
+
+                <datalist id="local-model-catalog">
+                  {localModels.map((model) => (
+                    <option key={model.id} value={model.id} label={model.loaded ? "cargado en LM Studio" : "anunciado por LM Studio"} />
+                  ))}
+                </datalist>
+                <label className="field" htmlFor="chat-model">
+                  <span>Modelo de chat</span>
+                  <input id="chat-model" list={local ? "local-model-catalog" : undefined} value={chatModel} disabled={busy !== ""} placeholder="ID exacto del modelo" onChange={(event) => { setChatModel(event.target.value); clearFeedback(); }} />
+                </label>
+                <label className="field" htmlFor="analysis-model">
+                  <span>Modelo de análisis</span>
+                  <input id="analysis-model" list={local ? "local-model-catalog" : undefined} value={analysisModel} disabled={busy !== ""} placeholder="ID exacto del modelo" onChange={(event) => { setAnalysisModel(event.target.value); clearFeedback(); }} />
+                </label>
+                <label className="field" htmlFor="copilot-model">
+                  <span>Modelo del copiloto clínico</span>
+                  <input id="copilot-model" list={local ? "local-model-catalog" : undefined} value={copilotModel} disabled={busy !== ""} placeholder="ID exacto del modelo" onChange={(event) => { setCopilotModel(event.target.value); clearFeedback(); }} />
+                </label>
+
+                <div className="field-row">
+                  <label className="field" htmlFor="model-max-tokens">
+                    <span>Máximo de tokens</span>
+                    <input id="model-max-tokens" type="number" min={256} max={32768} step={256} value={maxTokens} disabled={busy !== ""} onChange={(event) => setMaxTokens(Number(event.target.value))} />
                   </label>
-                )}
-                {!keyAvailable && (
-                  <p className="warning">Para conectar en local introduce la API key de LM Studio. La clave del túnel no sale del servidor.</p>
-                )}
+                  <label className="field" htmlFor="model-timeout">
+                    <span>Tiempo de espera (segundos)</span>
+                    <input id="model-timeout" type="number" min={5} max={5000} step={5} value={timeoutSeconds} disabled={busy !== ""} onChange={(event) => setTimeoutSeconds(Number(event.target.value))} />
+                  </label>
+                </div>
+                <p className="meta">No hay modelos preseleccionados. Guarda IDs explícitos para las tres funciones; las credenciales comerciales y de Cloudflare no se exponen en esta pantalla.</p>
               </>
-            ) : (
-              <p className="info">
-                {openai
-                  ? "Codex / ChatGPT usa la API de OpenAI configurada en el servidor. La clave no sale del backend y no se elige un modelo desde aquí."
-                  : "Anthropic usa la clave configurada en el servidor. No se elige un modelo desde aquí."}
-              </p>
             )}
+
             <div className="alert-actions">
-              <button disabled={busy !== "" || !maySave} onClick={save}>{busy === "save" ? "Guardando…" : "Guardar conexión"}</button>
-              <button className="btn-secondary" disabled={busy !== "" || !mayTest} onClick={test}>{busy === "test" ? "Probando…" : "Probar conexión"}</button>
-              <button className="btn-secondary" disabled={busy !== "" || !status.configured} onClick={remove}>Eliminar conexión</button>
+              <button disabled={busy !== "" || !maySave} onClick={save}>{busy === "save" ? "Guardando…" : "Guardar configuración"}</button>
+              <button className="btn-secondary" disabled={busy !== "" || !mayTest} onClick={test}>{busy === "test" ? "Probando…" : "Probar selección"}</button>
+              <button className="btn-secondary" disabled={busy !== "" || !status.configured} onClick={remove}>Eliminar configuración compartida</button>
             </div>
           </>
         )}
-        {busy === "test" && <PsychcastLoader size="sm" label="Probando la conexión…" />}
+        {busy === "test" && <PsychcastLoader size="sm" label="Probando con una solicitud sintética…" />}
         {error && <p className="error" role="alert">{error}</p>}
         {message && <p className="info" role="status">{message}</p>}
-        <p className="meta">Si el proveedor elegido no responde, no se envía información clínica a otro proveedor.</p>
+        <p className="meta">La prueba usa solo el texto sintético «OK». Si el proveedor falla, Psychcast no envía la solicitud a otro proveedor.</p>
       </section>
     </div>
   );

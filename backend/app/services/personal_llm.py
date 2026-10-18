@@ -1,10 +1,10 @@
-"""Account-scoped model selection and LM Studio authentication.
+"""Shared clinical-admin model selection and LM Studio authentication.
 
 Cloudflare Access's service-token pair is operator-owned and stored only in
-Render. The cloudflared connector token stays on Windows. Each authenticated
-user supplies their own LM Studio bearer token, encrypted at rest with a
-stable Fernet key held solely by the backend. Never use a shared LM Studio key
-as a fallback for an account that has no personal token.
+Render. The cloudflared connector token stays on Windows. The clinical
+administrator's LM Studio bearer token is encrypted at rest with a stable
+Fernet key held solely by the backend. Provider and model selection are
+shared; account identity and local-model authorization remain per request.
 """
 from __future__ import annotations
 
@@ -22,15 +22,11 @@ from sqlalchemy.orm import Mapped, Session, mapped_column
 from app.config import get_settings
 from app.database import Base
 from app.services import llm_config
-from app.services.local_model_catalog import (
-    Catalog,
-    fetch_catalog,
-    select_model,
-)
+from app.services.local_model_catalog import Catalog, fetch_catalog
 
 
 class LocalModelUnavailable(RuntimeError):
-    """The tunnel answered, but no usable LM Studio model id is selected."""
+    """The shared model configuration is incomplete or unavailable."""
 
 
 OPENAI_BASE_URL = "https://api.openai.com/v1"
@@ -87,7 +83,7 @@ def _replace_lm_key(value: str | None, old_ciphertext: str | None) -> str | None
 
 def _decrypt_lm_key(ciphertext: str | None) -> str:
     if not ciphertext:
-        raise RuntimeError("Configura tu API key personal de LM Studio antes de usar el modelo.")
+        raise RuntimeError("El administrador debe configurar la API key compartida de LM Studio.")
     try:
         return _cipher().decrypt(ciphertext.encode("ascii")).decode("utf-8")
     except (InvalidToken, ValueError, UnicodeError) as exc:
@@ -141,7 +137,7 @@ def shared_ready() -> bool:
 
 
 def _catalog_for(api_key: str) -> Catalog:
-    """Catalog of the operator tunnel. Never uses the shared LM Studio key."""
+    """Catalog of the operator tunnel; never uses a legacy Render bearer key."""
     try:
         settings, endpoint = shared_gateway()
     except (ValueError, RuntimeError):
@@ -177,7 +173,7 @@ def _is_openai_destination(row: UserLLMPreference | None) -> bool:
 
 
 def _admin_owner_id(db: Session) -> uuid.UUID | None:
-    """Latest active clinical-admin connection, when this session can query it."""
+    """Latest shared selection row owned by an active clinical admin."""
     from app.models import User
 
     query = getattr(db, "query", None)
@@ -193,142 +189,128 @@ def _admin_owner_id(db: Session) -> uuid.UUID | None:
     return row.user_id if row is not None else None
 
 
-def _commercial_admin_id(db: Session) -> uuid.UUID | None:
-    """Admin connection when it is Codex or Anthropic.
-
-    Those providers use server credentials. A local LM Studio row stays on
-    the account that stored its own key and must not replace another account.
-    """
-    owner = _admin_owner_id(db)
-    if owner is None:
-        return None
-    row = db.get(UserLLMPreference, owner)
+def _provider_for(row: UserLLMPreference | None) -> str:
     if row is None:
-        return None
-    if row.provider == llm_config.PROVIDER_ANTHROPIC or _is_openai_destination(row):
-        return owner
-    return None
+        return ""
+    if not (row.chat_model or "").strip() or not (row.analysis_model or "").strip() or not (row.copilot_model or "").strip():
+        return ""
+    if _is_openai_destination(row):
+        return "openai"
+    return row.provider
+
+
+def _model_id(value: str, name: str) -> str:
+    model_id = (value or "").strip()
+    if not model_id or len(model_id) > 192 or any(ord(char) < 32 for char in model_id):
+        raise ValueError(f"Indica un identificador válido para el modelo de {name}.")
+    return model_id
+
+
+def _selected_models(row: UserLLMPreference | None) -> tuple[str, str, str]:
+    if row is None:
+        raise LocalModelUnavailable("El administrador clínico todavía no ha guardado proveedor y modelos.")
+    return (
+        _model_id(row.chat_model, "chat"),
+        _model_id(row.analysis_model, "análisis"),
+        _model_id(row.copilot_model, "copiloto"),
+    )
+
+
+def _assert_catalog_selection(models: tuple[str, str, str], catalog: Catalog) -> None:
+    if not catalog.reachable:
+        return
+    available = {item.id for item in catalog.models}
+    if not available:
+        raise ValueError("LM Studio no anuncia modelos. Carga al menos uno y actualiza el catálogo.")
+    if any(model_id not in available for model_id in models):
+        raise ValueError("Uno o más modelos ya no aparecen en LM Studio. Actualiza el catálogo y selecciónalos de nuevo.")
 
 
 def status(db: Session, user_id: uuid.UUID) -> dict:
-    row = db.get(UserLLMPreference, user_id)
+    from app.services.personal_resolution import personal_mode_enabled
+
+    owner_id = _admin_owner_id(db)
+    row = db.get(UserLLMPreference, owner_id) if owner_id else None
     settings = get_settings()
-    selected = row.provider if row else llm_config.PROVIDER_LOCAL
-    openai = _is_openai_destination(row)
-    local = selected == llm_config.PROVIDER_LOCAL and not openai
-    logical_provider = "openai" if openai else selected
-    # Codex and Anthropic do not need the LM Studio catalog. Asking the
-    # tunnel here makes the admin screen depend on Cloudflare while the
-    # saved connection is a server provider.
-    catalog = (
-        _catalog_for(_usable_key(row.lm_api_key_encrypted if row else None))
-        if local
-        else Catalog((), False)
-    )
-    # Local inference follows the model loaded on the operator's computer.
-    # A stored id is not a menu choice and is not shown as one.
-    effective = select_model("", catalog) if local else ""
-    loaded = next((model.id for model in catalog.models if model.loaded), "")
-    if not loaded and len(catalog.models) == 1:
-        loaded = catalog.models[0].id
+    selected = _provider_for(row)
+    configured = selected in (llm_config.PROVIDER_LOCAL, llm_config.PROVIDER_ANTHROPIC, "openai")
+    local = selected == llm_config.PROVIDER_LOCAL
+    catalog = _catalog_for(_usable_key(row.lm_api_key_encrypted if row else None)) if local else Catalog((), False)
+    models = (row.chat_model, row.analysis_model, row.copilot_model) if row else ("", "", "")
+    key_configured = bool(row and row.lm_api_key_encrypted)
+    if local:
+        provider_credentials = shared_ready() and key_configured
+    elif selected == llm_config.PROVIDER_ANTHROPIC:
+        provider_credentials = bool(settings.anthropic_api_key)
+    elif selected == "openai":
+        provider_credentials = bool(settings.openai_api_key)
+    else:
+        provider_credentials = False
+    allowed = selected != llm_config.PROVIDER_ANTHROPIC or settings.model_allow_commercial
     return {
-        "configured": row is not None,
-        "provider": logical_provider,
-        "chat_model": (
-            "" if local
-            else settings.openai_chat_model if openai
-            else settings.anthropic_chat_model if row and row.provider == llm_config.PROVIDER_ANTHROPIC
-            else ""
-        ),
-        "analysis_model": (
-            "" if local
-            else settings.openai_analysis_model if openai
-            else settings.anthropic_analysis_model if row and row.provider == llm_config.PROVIDER_ANTHROPIC
-            else ""
-        ),
-        "effective_local_model": effective,
-        "copilot_model": (
-            "" if local
-            else settings.openai_copilot_model or settings.openai_chat_model if openai
-            else row.copilot_model
-        ),
-        "default_local_chat_model": loaded,
-        "default_local_analysis_model": loaded,
+        "configured": configured,
+        "provider": selected if configured else "",
+        "chat_model": models[0],
+        "analysis_model": models[1],
+        "copilot_model": models[2],
         "local_models": _catalog_payload(catalog),
         "local_models_reachable": catalog.reachable,
+        "ready": bool(row and allowed and provider_credentials and all(value.strip() for value in models)),
         "max_tokens": row.max_tokens if row else min(settings.model_local_max_tokens, 32768),
         "timeout_seconds": row.timeout_seconds if row else settings.model_local_timeout_seconds,
         "local_available": shared_ready(),
-        "lm_api_key_configured": bool(row and row.lm_api_key_encrypted),
-        "anthropic_allowed": bool(settings.model_allow_commercial and settings.anthropic_api_key),
-        "openai_allowed": bool(settings.openai_api_key),
+        "lm_api_key_configured": key_configured,
+        "anthropic_allowed": bool(settings.model_allow_commercial),
+        "anthropic_api_key_configured": bool(settings.anthropic_api_key),
+        "openai_allowed": True,
+        "openai_api_key_configured": bool(settings.openai_api_key),
+        "shared_inference_active": personal_mode_enabled(),
     }
 
 
 def save(db: Session, user_id: uuid.UUID, payload) -> dict:
     settings = get_settings()
-    if payload.provider == llm_config.PROVIDER_ANTHROPIC:
-        if not settings.model_allow_commercial or not settings.anthropic_api_key:
-            raise ValueError("Anthropic no está habilitado por el administrador.")
-        endpoint = None
-        chat_model = settings.anthropic_chat_model
-        analysis_model = settings.anthropic_analysis_model
-        copilot_model = settings.anthropic_copilot_model or chat_model
-    elif payload.provider == "openai":
-        if not settings.openai_api_key:
-            raise ValueError("OpenAI no está habilitado: falta OPENAI_API_KEY en Render.")
-        # The OpenAI destination and model ids are server-owned. The account
-        # selects the provider, never an arbitrary URL or model name.
-        endpoint = OPENAI_BASE_URL
-        chat_model = settings.openai_chat_model
-        analysis_model = settings.openai_analysis_model
-        copilot_model = settings.openai_copilot_model or chat_model
-    else:
-        _, endpoint = shared_gateway()
-        # Ignore any model id from the request. Inference reads the model
-        # loaded in LM Studio on the operator's computer.
-        chat_model, analysis_model, copilot_model = "", "", ""
-    if payload.provider == "openai":
-        fields = {
-            "provider": llm_config.PROVIDER_LOCAL,
-            "base_url": endpoint,
-            "chat_model": chat_model.strip(),
-            "analysis_model": analysis_model.strip(),
-            "copilot_model": copilot_model.strip(),
-            "max_tokens": payload.max_tokens,
-            "timeout_seconds": payload.timeout_seconds,
-        }
-    else:
-        # An empty local id is valid: inference reads the model loaded in LM Studio.
-        # validate() still checks the pinned tunnel URL, tokens and timeout.
-        placeholder = chat_model.strip() or "pending-model"
-        fields = llm_config.validate(
-            provider=payload.provider, base_url=endpoint, chat_model=placeholder,
-            analysis_model=analysis_model.strip() or placeholder, copilot_model=copilot_model,
-            max_tokens=payload.max_tokens, timeout_seconds=payload.timeout_seconds,
-        )
-        if payload.provider == llm_config.PROVIDER_LOCAL:
-            fields["chat_model"] = chat_model.strip()
-            fields["analysis_model"] = analysis_model.strip()
-            fields["copilot_model"] = ""
-    row = db.get(UserLLMPreference, user_id)
+    if payload.provider == llm_config.PROVIDER_ANTHROPIC and not settings.model_allow_commercial:
+        raise ValueError("Anthropic no está habilitado en este despliegue. Actívalo en la configuración del servidor.")
+    if payload.provider not in (llm_config.PROVIDER_LOCAL, llm_config.PROVIDER_ANTHROPIC, "openai"):
+        raise ValueError("Proveedor no admitido.")
+
+    chat_model = _model_id(payload.chat_model, "chat")
+    analysis_model = _model_id(payload.analysis_model, "análisis")
+    copilot_model = _model_id(payload.copilot_model, "copiloto")
+    owner_id = _admin_owner_id(db)
+    target_id = owner_id or user_id
+    row = db.get(UserLLMPreference, target_id)
     old_ciphertext = row.lm_api_key_encrypted if row else None
     lm_ciphertext = _replace_lm_key(payload.lm_api_key, old_ciphertext)
-    if payload.provider == llm_config.PROVIDER_LOCAL and not lm_ciphertext:
-        raise ValueError("Introduce tu API key personal de LM Studio para activar el modelo local.")
-    # Validate encryption availability before accepting any newly supplied key.
-    if payload.lm_api_key is not None and payload.lm_api_key.strip():
+
+    endpoint = None
+    if payload.provider == llm_config.PROVIDER_LOCAL:
+        if shared_ready():
+            _, endpoint = shared_gateway()
+        key_for_catalog = ((payload.lm_api_key or "").strip() if payload.lm_api_key is not None
+                           else _usable_key(old_ciphertext))
+        _assert_catalog_selection(
+            (chat_model, analysis_model, copilot_model),
+            _catalog_for(key_for_catalog),
+        )
+    elif payload.provider == "openai":
+        endpoint = OPENAI_BASE_URL
+
+    if payload.lm_api_key and payload.lm_api_key.strip():
         _cipher()
     if row is None:
-        row = UserLLMPreference(user_id=user_id, provider=fields["provider"],
-                                chat_model=fields["chat_model"], analysis_model=fields["analysis_model"])
-    row.provider = llm_config.PROVIDER_LOCAL if payload.provider == "openai" else fields["provider"]
-    row.base_url = fields["base_url"] if payload.provider == "openai" else None  # OpenAI is a fixed server-owned destination.
-    row.chat_model = fields["chat_model"]
-    row.analysis_model = fields["analysis_model"]
-    row.copilot_model = fields["copilot_model"]
-    row.max_tokens = fields["max_tokens"]
-    row.timeout_seconds = fields["timeout_seconds"]
+        row = UserLLMPreference(user_id=target_id, provider=payload.provider,
+                                chat_model=chat_model, analysis_model=analysis_model)
+    # The production check constraint stores OpenAI-compatible destinations as
+    # openai_compatible; the fixed api.openai.com URL distinguishes OpenAI.
+    row.provider = llm_config.PROVIDER_LOCAL if payload.provider == "openai" else payload.provider
+    row.base_url = endpoint
+    row.chat_model = chat_model
+    row.analysis_model = analysis_model
+    row.copilot_model = copilot_model
+    row.max_tokens = payload.max_tokens
+    row.timeout_seconds = payload.timeout_seconds
     row.lm_api_key_encrypted = lm_ciphertext
     # Obsolete per-account Access credentials are never used for inference.
     row.cf_client_id_encrypted = None
@@ -339,68 +321,145 @@ def save(db: Session, user_id: uuid.UUID, payload) -> dict:
     return status(db, user_id)
 
 
+def clear_shared_selection(db: Session) -> None:
+    """Write a disabled tombstone so an older admin row cannot reactivate."""
+    owner_id = _admin_owner_id(db)
+    row = db.get(UserLLMPreference, owner_id) if owner_id else None
+    if row is None:
+        return
+    # Keep the database provider check constraint valid; blank explicit IDs
+    # make _provider_for treat this latest row as an inactive tombstone.
+    row.provider = llm_config.PROVIDER_LOCAL
+    row.base_url = None
+    row.chat_model = ""
+    row.analysis_model = ""
+    row.copilot_model = ""
+    row.lm_api_key_encrypted = None
+    row.cf_client_id_encrypted = None
+    row.cf_client_secret_encrypted = None
+    row.updated_at = datetime.now(timezone.utc)
+    db.add(row)
+    db.commit()
+
+
+def list_local_models(db: Session, user_id: uuid.UUID, api_key: str | None = None) -> dict:
+    owner_id = _admin_owner_id(db)
+    row = db.get(UserLLMPreference, owner_id) if owner_id else None
+    candidate = (api_key or "").strip() or _usable_key(row.lm_api_key_encrypted if row else None)
+    catalog = _catalog_for(candidate)
+    return {
+        "models": _catalog_payload(catalog),
+        "reachable": catalog.reachable,
+        "detail": (
+            "Catálogo de LM Studio actualizado."
+            if catalog.reachable
+            else "No se pudo consultar LM Studio: revisa el acceso de Cloudflare en el servidor y la API key de LM Studio."
+        ),
+    }
+
+
+def resolve_candidate(db: Session, user_id: uuid.UUID, payload) -> PersonalResolvedConfig:
+    """Build an unsaved candidate for the admin's synthetic connection test."""
+    settings = get_settings()
+    chat_model = _model_id(payload.chat_model, "chat")
+    analysis_model = _model_id(payload.analysis_model, "análisis")
+    copilot_model = _model_id(payload.copilot_model, "copiloto")
+    if payload.provider == llm_config.PROVIDER_ANTHROPIC:
+        if not settings.model_allow_commercial:
+            raise RuntimeError("Anthropic no está habilitado en este despliegue.")
+        if not settings.anthropic_api_key.strip():
+            raise RuntimeError("Falta la clave API de Anthropic en los secretos del servidor.")
+        return PersonalResolvedConfig(
+            provider=payload.provider, chat_model=chat_model, analysis_model=analysis_model,
+            copilot_model=copilot_model, copilot_model_explicit=copilot_model,
+            api_key=settings.anthropic_api_key, max_tokens=payload.max_tokens,
+            timeout_seconds=payload.timeout_seconds, label="Configuración compartida", source="runtime",
+        )
+    if payload.provider == "openai":
+        if not settings.openai_api_key.strip():
+            raise RuntimeError("Falta OPENAI_API_KEY en los secretos del servidor.")
+        return PersonalResolvedConfig(
+            provider="openai", chat_model=chat_model, analysis_model=analysis_model,
+            copilot_model=copilot_model, copilot_model_explicit=copilot_model,
+            api_key=settings.openai_api_key, max_tokens=payload.max_tokens,
+            timeout_seconds=payload.timeout_seconds, label="Configuración compartida", source="runtime",
+        )
+    if payload.provider != llm_config.PROVIDER_LOCAL:
+        raise RuntimeError("Proveedor no admitido.")
+    gateway_settings, endpoint = shared_gateway()
+    owner_id = _admin_owner_id(db)
+    row = db.get(UserLLMPreference, owner_id) if owner_id else None
+    api_key = (payload.lm_api_key or "").strip() or _usable_key(row.lm_api_key_encrypted if row else None)
+    if not api_key:
+        raise RuntimeError("Introduce la API key de LM Studio para probar el proveedor local.")
+    _assert_catalog_selection((chat_model, analysis_model, copilot_model), _catalog_for(api_key))
+    return PersonalResolvedConfig(
+        provider=llm_config.PROVIDER_LOCAL, base_url=endpoint,
+        chat_model=chat_model, analysis_model=analysis_model, copilot_model=copilot_model,
+        copilot_model_explicit=copilot_model, api_key=api_key, max_tokens=payload.max_tokens,
+        timeout_seconds=payload.timeout_seconds, label="Configuración compartida", source="runtime",
+        access_client_id=gateway_settings.model_local_cf_access_client_id,
+        access_client_secret=gateway_settings.model_local_cf_access_client_secret,
+        access_hostname=approved_host(),
+    )
+
+
 def resolve(db: Session, user_id: uuid.UUID) -> PersonalResolvedConfig:
     row = db.get(UserLLMPreference, user_id)
+    if row is None:
+        raise LocalModelUnavailable("El administrador clínico todavía no ha guardado proveedor y modelos.")
     settings = get_settings()
-    selected = row.provider if row else llm_config.PROVIDER_LOCAL
-    openai = _is_openai_destination(row)
+    selected = _provider_for(row)
+    if selected not in (llm_config.PROVIDER_LOCAL, llm_config.PROVIDER_ANTHROPIC, "openai"):
+        raise LocalModelUnavailable("El administrador clínico todavía no ha configurado proveedor y modelos.")
+    chat_model, analysis_model, copilot_model = _selected_models(row)
     if selected == llm_config.PROVIDER_ANTHROPIC:
-        if not settings.model_allow_commercial or not settings.anthropic_api_key:
-            raise RuntimeError("Anthropic no está habilitado por el administrador.")
+        if not settings.model_allow_commercial:
+            raise RuntimeError("Anthropic no está habilitado en este despliegue.")
+        if not settings.anthropic_api_key.strip():
+            raise RuntimeError("Falta la clave API de Anthropic en los secretos del servidor.")
         return PersonalResolvedConfig(
-            provider=selected,
-            chat_model=settings.anthropic_chat_model,
-            analysis_model=settings.anthropic_analysis_model,
-            copilot_model=settings.anthropic_copilot_model or settings.anthropic_chat_model,
-            copilot_model_explicit=row.copilot_model, api_key=settings.anthropic_api_key,
-            max_tokens=row.max_tokens, timeout_seconds=row.timeout_seconds,
-            label="Selección de cuenta", source="runtime",
+            provider=selected, chat_model=chat_model, analysis_model=analysis_model,
+            copilot_model=copilot_model, copilot_model_explicit=copilot_model,
+            api_key=settings.anthropic_api_key, max_tokens=row.max_tokens,
+            timeout_seconds=row.timeout_seconds, label="Configuración compartida del admin clínico",
+            source="runtime",
         )
-    if openai:
-        if not settings.openai_api_key:
-            raise RuntimeError("OpenAI no está habilitado: falta OPENAI_API_KEY en Render.")
+    if selected == "openai":
+        if not settings.openai_api_key.strip():
+            raise RuntimeError("Falta OPENAI_API_KEY en los secretos del servidor.")
         return PersonalResolvedConfig(
-            provider="openai",
-            chat_model=settings.openai_chat_model,
-            analysis_model=settings.openai_analysis_model,
-            copilot_model=settings.openai_copilot_model or settings.openai_chat_model,
-            copilot_model_explicit=row.copilot_model,
-            api_key=settings.openai_api_key,
-            max_tokens=row.max_tokens,
-            timeout_seconds=row.timeout_seconds,
-            label="OpenAI / API de OpenAI",
+            provider="openai", chat_model=chat_model, analysis_model=analysis_model,
+            copilot_model=copilot_model, copilot_model_explicit=copilot_model,
+            api_key=settings.openai_api_key, max_tokens=row.max_tokens,
+            timeout_seconds=row.timeout_seconds, label="Configuración compartida del admin clínico",
             source="runtime",
         )
     if selected != llm_config.PROVIDER_LOCAL:
-        raise RuntimeError("Proveedor personal no autorizado.")
-    settings, endpoint = shared_gateway()
-    api_key = _decrypt_lm_key(row.lm_api_key_encrypted if row else None)
-    model = select_model("", _catalog_for(api_key))
-    if not model:
-        raise LocalModelUnavailable(
-            "No hay un modelo cargado en el ordenador. Carga uno en LM Studio; desde Psychcast no se elige un modelo."
-        )
+        raise RuntimeError("Proveedor de inferencia no admitido.")
+    gateway_settings, endpoint = shared_gateway()
+    api_key = _decrypt_lm_key(row.lm_api_key_encrypted)
+    _assert_catalog_selection((chat_model, analysis_model, copilot_model), _catalog_for(api_key))
     return PersonalResolvedConfig(
-        provider=selected, base_url=endpoint, chat_model=model,
-        analysis_model=model,
-        copilot_model=model,
-        copilot_model_explicit="", api_key=api_key,
-        max_tokens=row.max_tokens if row else min(settings.model_local_max_tokens, 32768),
-        timeout_seconds=row.timeout_seconds if row else settings.model_local_timeout_seconds,
-        label="Modelo local con credenciales personales", source="runtime",
-        access_client_id=settings.model_local_cf_access_client_id,
-        access_client_secret=settings.model_local_cf_access_client_secret,
+        provider=selected, base_url=endpoint, chat_model=chat_model,
+        analysis_model=analysis_model, copilot_model=copilot_model,
+        copilot_model_explicit=copilot_model, api_key=api_key,
+        max_tokens=row.max_tokens, timeout_seconds=row.timeout_seconds,
+        label="Configuración compartida del admin clínico", source="runtime",
+        access_client_id=gateway_settings.model_local_cf_access_client_id,
+        access_client_secret=gateway_settings.model_local_cf_access_client_secret,
         access_hostname=approved_host(),
     )
 
 
 def resolve_active(db: Session, user_id: uuid.UUID) -> PersonalResolvedConfig:
-    """Inference connection for this request.
+    """Resolve one clinical-admin configuration for every authenticated user."""
+    owner_id = _admin_owner_id(db)
+    if owner_id is None:
+        raise LocalModelUnavailable("El administrador clínico todavía no ha configurado proveedor y modelos.")
+    resolved = resolve(db, owner_id)
+    if resolved.provider == llm_config.PROVIDER_LOCAL:
+        from app.services import local_llm_access
 
-    When the clinical admin has saved Codex or Anthropic, every account uses
-    that connection. Patient chat must not keep calling the local tunnel
-    after that selection. A local connection still resolves for the account
-    that owns the LM Studio key.
-    """
-    owner = _commercial_admin_id(db)
-    return resolve(db, owner if owner is not None else user_id)
+        local_llm_access.assert_can_use_local_llm(local_llm_access.request_user(db))
+    return resolved

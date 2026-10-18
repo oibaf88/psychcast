@@ -217,10 +217,10 @@ def weekly_review(db: Session = Depends(get_db), user: User = Depends(require_pa
 
 
 @router.get("/model/deployments/status")
-def model_status(user: User = Depends(get_current_user)):
+def model_status(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     # No URL, credential reference or secret is included in the response.
     active = get_model_gateway()
-    active_status = active.health()
+    active_status = active.health(db=db)
     configured = []
     for alias in sorted(APPROVED_ALIASES):
         try:

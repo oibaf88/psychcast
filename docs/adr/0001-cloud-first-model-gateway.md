@@ -40,3 +40,13 @@ The product screen is **Mis modelos**, and only `admin_clinical` can open it. Th
 4. A local key stays on the account that saved it. There is still no silent fallback.
 
 Decisions 4 and 7 above describe the earlier Settings flow, which edited an OpenAI-compatible endpoint and switched between Anthropic and that endpoint. That screen is not the current product path.
+
+## Amendment — 2026-10-18 — explicit shared model selection in Mis modelos
+
+The product owner requested that the clinical administrator be able to configure the provider and models from Psychcast. This amendment supersedes the 2026-10-06 choice to hide model IDs from the screen.
+
+1. The admin selects one shared provider and explicit chat, analysis, and copilot model IDs. No model ID is inferred from the provider's default or from the only loaded local model.
+2. The shared selection applies to every authenticated account, while each request retains its own identity and authorization checks.
+3. Anthropic/OpenAI API keys and Cloudflare Access credentials remain server-side. Only the admin's LM Studio key can be entered in the app; it stays encrypted at rest and is never returned to the browser.
+4. The local catalog may suggest IDs, but admins can enter an exact ID when the tunnel is unavailable. The synthetic connection test must succeed before calling a provider usable; runtime does not silently fail over.
+5. The existing `llm_user_preferences` storage is reused, so this screen change does not require a database migration. Render must keep `LLM_PERSONAL_MODE=true` and the approved local tunnel variables configured for the saved shared selection to reach authenticated inference.
