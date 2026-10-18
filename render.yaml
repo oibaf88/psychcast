@@ -59,19 +59,18 @@ services:
         sync: false
       - key: MODEL_LOCAL_CF_ACCESS_CLIENT_SECRET
         sync: false
-      # Do NOT provision MODEL_LOCAL_API_KEY for personal mode. admin_clinical
-      # saves an LM Studio token in Mis modelos; it stays on that account.
+      # Do NOT provision MODEL_LOCAL_API_KEY for shared mode. admin_clinical
+      # selects model ids for all users in Mis modelos; its LM Studio token
+      # remains encrypted by the backend.
       # An existing Render shared key may remain only for a reviewed rollback.
       # Preserve this SAME Fernet key across deployments; never regenerate it.
       - key: LLM_USER_CREDENTIALS_KEY
         sync: false
-      # The deployed API already runs with this enabled. sync:false keeps the
-      # dashboard value from being cleared by a blueprint sync.
+      # Inference must resolve the shared admin selection for authenticated
+      # requests. Credentials remain in Render or encrypted server-side.
       - key: LLM_PERSONAL_MODE
-        sync: false
-      # Do not pin a model id. Local inference uses the model LM Studio
-      # reports as loaded. Several advertised models and no unique loaded
-      # model stop inference.
+        value: "true"
+      # Model IDs are selected explicitly in Mis modelos, not from defaults.
       - key: MODEL_LOCAL_CHAT_MODEL
         sync: false
       - key: MODEL_LOCAL_ANALYSIS_MODEL

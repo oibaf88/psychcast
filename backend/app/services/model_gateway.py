@@ -12,7 +12,7 @@ import json
 import logging
 import time
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Literal
 from urllib.parse import urlparse
 
@@ -45,7 +45,7 @@ class Deployment:
     alias: str
     adapter: Literal["openai_compatible", "managed_cloud", "mobile_local"]
     base_url: str | None
-    api_key: str
+    api_key: str = field(repr=False)
     chat_model: str
     analysis_model: str
     copilot_model: str
@@ -53,11 +53,15 @@ class Deployment:
     max_tokens: int
     policy_version: str
     data_handling_classification: str
+    provider: str = ""
+    access_client_id: str = field(default="", repr=False)
+    access_client_secret: str = field(default="", repr=False)
 
     def public_dict(self) -> dict[str, Any]:
         return {
             "alias": self.alias,
             "adapter": self.adapter,
+            "provider": self.provider,
             "chat_model": self.chat_model,
             "analysis_model": self.analysis_model,
             "copilot_model": self.copilot_model,
@@ -124,11 +128,48 @@ class ModelGateway:
         self.alias = (alias or self.settings.model_deployment_alias).strip()
         if self.alias not in APPROVED_ALIASES:
             raise ModelUnavailable("MODEL_DEPLOYMENT_NOT_APPROVED")
-        if self.alias == COMMERCIAL_APPROVED and not self.settings.model_allow_commercial:
-            raise ModelUnavailable("COMMERCIAL_MODEL_NOT_APPROVED")
 
-    def deployment(self) -> Deployment:
+    @staticmethod
+    def _request_config(db: Session | None):
+        if db is None:
+            return None
+        from app.services.personal_resolution import personal_mode_enabled
+
+        if not personal_mode_enabled():
+            return None
+        info = getattr(db, "info", None)
+        if not isinstance(info, dict) or not info.get("authenticated_user_id"):
+            raise ModelUnavailable("AUTHENTICATED_ACCOUNT_REQUIRED_FOR_SHARED_MODEL")
+        from app.services.llm_config import resolve
+        try:
+            return resolve(db)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Shared model configuration unavailable: %s", type(exc).__name__)
+            raise ModelUnavailable("SHARED_MODEL_CONFIGURATION_UNAVAILABLE") from exc
+
+    def deployment(self, db: Session | None = None) -> Deployment:
         s = self.settings
+        config = self._request_config(db)
+        if config is not None:
+            is_local = config.provider == "openai_compatible"
+            return Deployment(
+                alias=LOCAL_TUNNEL if is_local else COMMERCIAL_APPROVED,
+                adapter="openai_compatible" if is_local else "managed_cloud",
+                base_url=config.base_url if is_local else None,
+                api_key=config.api_key,
+                chat_model=config.chat_model,
+                analysis_model=config.analysis_model,
+                copilot_model=config.copilot_model,
+                timeout_seconds=config.timeout_seconds,
+                max_tokens=config.max_tokens,
+                policy_version=s.model_policy_version,
+                data_handling_classification=(
+                    "clinical_data_private_tunnel" if is_local else "clinical_data_approved_commercial"
+                ),
+                provider=config.provider,
+                access_client_id=getattr(config, "access_client_id", ""),
+                access_client_secret=getattr(config, "access_client_secret", ""),
+            )
         if self.alias == LOCAL_TUNNEL:
             return Deployment(
                 alias=LOCAL_TUNNEL,
@@ -142,6 +183,7 @@ class ModelGateway:
                 max_tokens=s.model_local_max_tokens or s.llm_openai_compatible_max_tokens,
                 policy_version=s.model_policy_version,
                 data_handling_classification="clinical_data_private_tunnel",
+                provider="openai_compatible",
             )
         if self.alias == "mobile-local":
             return Deployment(
@@ -156,6 +198,7 @@ class ModelGateway:
                 max_tokens=8192,
                 policy_version=s.model_policy_version,
                 data_handling_classification="clinical_data_device_local",
+                provider="mobile_local",
             )
         if self.alias == CLOUD_TUNED:
             chat = s.model_cloud_chat_model.strip()
@@ -173,7 +216,10 @@ class ModelGateway:
                 max_tokens=s.model_cloud_max_tokens,
                 policy_version=s.model_policy_version,
                 data_handling_classification="clinical_data_managed_private",
+                provider="openai_compatible",
             )
+        if not s.model_allow_commercial:
+            raise ModelUnavailable("COMMERCIAL_MODEL_NOT_APPROVED")
         return Deployment(
             alias=COMMERCIAL_APPROVED,
             adapter="managed_cloud",
@@ -186,10 +232,20 @@ class ModelGateway:
             max_tokens=s.anthropic_max_tokens,
             policy_version=s.model_policy_version,
             data_handling_classification="clinical_data_approved_commercial",
+            provider="anthropic",
         )
 
-    def provider(self) -> LLMProvider:
-        d = self.deployment()
+    def provider(self, db: Session | None = None) -> LLMProvider:
+        config = self._request_config(db)
+        if config is not None:
+            if config.provider == "openai_compatible":
+                from app.services import local_llm_access
+
+                local_llm_access.assert_can_use_local_llm(local_llm_access.request_user(db))
+            from app.services.llm import build_provider
+
+            return build_provider(config)
+        d = self.deployment(db)
         if d.alias == "mobile-local":
             raise ModelUnavailable("MOBILE_LOCAL_REQUIRES_DEVICE_INGEST")
         if not d.configured:
@@ -233,7 +289,7 @@ class ModelGateway:
             return None
         from app.models_vnext import ModelRun
 
-        d = self.deployment()
+        d = self.deployment(db)
         model_id = d.analysis_model if model_role == "analysis" else (d.copilot_model if model_role == "copilot" else d.chat_model)
         row = ModelRun(
             user_id=user_id,
@@ -285,8 +341,8 @@ class ModelGateway:
         )
         started = time.perf_counter()
         try:
-            provider = self.provider()
-            d = self.deployment()
+            provider = self.provider(db)
+            d = self.deployment(db)
             model = d.copilot_model if request.model_role == "copilot" else d.chat_model
             result = provider.chat(
                 request.system_prompt,
@@ -331,8 +387,8 @@ class ModelGateway:
         )
         started = time.perf_counter()
         try:
-            provider = self.provider()
-            d = self.deployment()
+            provider = self.provider(db)
+            d = self.deployment(db)
             result = provider.analyze_structured(
                 system_prompt,
                 user_text,
@@ -349,9 +405,17 @@ class ModelGateway:
         self._finish_run(db, run, result=result, latency_ms=int((time.perf_counter() - started) * 1000))
         return GatewayStructuredResult(result=result, model_run_id=getattr(run, "id", None))
 
-    def health(self, deployment_alias: str | None = None) -> dict[str, Any]:
+    def health(self, deployment_alias: str | None = None, *, db: Session | None = None) -> dict[str, Any]:
         gateway = self if deployment_alias is None or deployment_alias == self.alias else ModelGateway(deployment_alias)
-        d = gateway.deployment()
+        try:
+            d = gateway.deployment(db if deployment_alias is None else None)
+        except ModelUnavailable as exc:
+            return {
+                "alias": gateway.alias,
+                "configured": False,
+                "status": "unavailable",
+                "reason": str(exc),
+            }
         base = d.public_dict()
         if not d.configured:
             return {**base, "status": "unavailable", "reason": "not_configured"}
@@ -361,6 +425,9 @@ class ModelGateway:
         try:
             _validate_endpoint(d.base_url, production=gateway.settings.is_production)
             headers = {"Authorization": f"Bearer {d.api_key}"} if d.api_key else {}
+            if d.access_client_id and d.access_client_secret:
+                headers["CF-Access-Client-Id"] = d.access_client_id
+                headers["CF-Access-Client-Secret"] = d.access_client_secret
             with httpx.Client(timeout=min(float(d.timeout_seconds), 8.0), follow_redirects=False) as client:
                 response = client.get(d.base_url.rstrip("/") + "/models", headers=headers)
             if response.status_code < 500:

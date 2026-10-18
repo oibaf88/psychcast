@@ -220,11 +220,11 @@ def _clip(text: str, limit: int) -> str:
     return cleaned[: limit - 1].rstrip() + "…"
 
 
-def _policy_version() -> str:
+def _policy_version(db: Session | None = None) -> str:
     try:
         from app.services.model_gateway import get_model_gateway
 
-        return get_model_gateway().deployment().policy_version or "unspecified"
+        return get_model_gateway().deployment(db).policy_version or "unspecified"
     except Exception:  # noqa: BLE001
         return "unspecified"
 
@@ -271,7 +271,7 @@ def _write_commit(
         correlation_id=correlation_id,
         model_run_id=model_run_id,
         prompt_version=MEMORY_PROMPT_VERSION,
-        policy_version=_policy_version(),
+        policy_version=_policy_version(db),
     )
     db.add(row)
     db.flush()
@@ -774,7 +774,7 @@ def _store_embeddings(db: Session, user_id, fact: DiscourseFact, formulation: Fo
         ("discourse", fact.id, fact.quote),
         ("formulation", formulation.id, formulation.l0),
     ):
-        embedded = _embedding_from_selected_deployment(text)
+        embedded = _embedding_from_selected_deployment(text, db)
         if embedded is None:
             continue
         vector, provider, model = embedded
@@ -791,18 +791,21 @@ def _store_embeddings(db: Session, user_id, fact: DiscourseFact, formulation: Fo
     db.commit()
 
 
-def _embedding_from_selected_deployment(text: str) -> tuple[list[float], str, str] | None:
+def _embedding_from_selected_deployment(text: str, db: Session | None = None) -> tuple[list[float], str, str] | None:
     """Embed with the selected OpenAI-compatible deployment, or not at all."""
     try:
         from app.services.model_gateway import get_model_gateway
 
-        deployment = get_model_gateway().deployment()
+        deployment = get_model_gateway().deployment(db)
     except Exception:  # noqa: BLE001
         return None
     if deployment.adapter != "openai_compatible" or not deployment.configured or not deployment.base_url:
         return None
     url = deployment.base_url.rstrip("/") + "/embeddings"
     headers = {"Authorization": f"Bearer {deployment.api_key}"} if deployment.api_key else {}
+    if deployment.access_client_id and deployment.access_client_secret:
+        headers["CF-Access-Client-Id"] = deployment.access_client_id
+        headers["CF-Access-Client-Secret"] = deployment.access_client_secret
     try:
         with httpx.Client(timeout=3.0) as client:
             response = client.post(
@@ -888,7 +891,7 @@ def _query_vector(db: Session, user_id, query: str, supplied: list[float] | None
     )
     if exists is None:
         return None
-    embedded = _embedding_from_selected_deployment(query)
+    embedded = _embedding_from_selected_deployment(query, db)
     if embedded is None:
         return None
     return embedded[0]

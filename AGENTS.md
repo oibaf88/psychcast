@@ -452,3 +452,10 @@ This section supplements—not replaces—the historical vNext specification and
 5. Do not merge or deploy production changes until the product owner approves the exact PR and rollout.
 6. Daily agents may inspect source freshness, stuck/retried/dead-letter counts, failed analysis categories, model version freshness, API/UI contracts and test status. They must not automatically access patient text, change consent, replay dead-letter jobs, alter production schemas, or publish clinical interpretations without an authorised workflow.
 7. Use **Psychcast** for product-facing naming. Preserve historical technical identifiers (including `psychdeep_v12`, existing service URLs, migration IDs and old repository references) until a tested compatibility plan proves that changing each is safe.
+
+### Shared model settings (2026-10-18)
+- The clinical admin selects one shared provider and explicit chat, analysis and copilot model IDs in **Mis modelos**. Do not silently choose a local model or provider default.
+- Every authenticated request uses its own account identity and authorization, but resolves provider/model selection from the shared clinical-admin setting. A missing selection fails closed for model-dependent work; deterministic safety and clinical storage continue.
+- Provider credentials remain in Render secrets. The admin's LM Studio key is the only provider credential accepted by the app and remains encrypted server-side. The UI may list local IDs or accept an exact manually entered ID.
+- Keep `LLM_PERSONAL_MODE=true` and the approved Cloudflare Access tunnel variables effective in Render. A saved UI configuration is not runtime proof until synthetic test and authenticated inference both succeed.
+- No database migration is needed for this flow; preserve existing `llm_user_preferences` rows and credential encryption key.

@@ -76,12 +76,11 @@ class ResolvedConfig:
 
     def public_dict(self) -> dict:
         """Everything the authenticated UI may see. Never serialise a key."""
-        settings = get_settings()
         if self.provider == PROVIDER_ANTHROPIC:
-            has_key = bool(settings.anthropic_api_key)
             provider_label = "Claude / API de Anthropic"
+        elif self.provider == "openai":
+            provider_label = "OpenAI / API"
         else:
-            has_key = bool(settings.local_api_key)
             provider_label = "Modelo local / API compatible con OpenAI"
         return {
             "provider": self.provider,
@@ -98,7 +97,7 @@ class ResolvedConfig:
             "source": self.source,
             "config_id": self.config_id,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
-            "has_api_key": has_key,
+            "has_api_key": bool(self.api_key),
             "uses_server_api_key": True,
         }
 
@@ -322,13 +321,14 @@ def stored_override(db: Session | None) -> ResolvedConfig | None:
 def resolve(db: Session | None = None) -> ResolvedConfig:
     """Return the model configuration currently selected for inference.
 
-    With personal mode on, an authenticated request uses that account's
-    selection and never the process-wide cache. Without a request session,
+    With personal mode on, an authenticated request uses the clinical admin's
+    shared selection and never the process-wide cache. Without a request session,
     callers still receive the deployment selection.
 
-    Database lookup failures fall back to the deployment default because the
-    override cannot be established. A valid stored selection is never silently
-    replaced by the other provider merely because its endpoint is unavailable.
+    Shared mode fails closed when the authenticated identity or admin selection
+    cannot be established. Outside shared mode, legacy runtime-override lookup
+    failures may use the deployment configuration. A valid stored selection is
+    never replaced by another provider merely because its endpoint is unavailable.
     """
     account_id = _personal_account(db)
     if account_id is not None:
